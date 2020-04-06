@@ -169,7 +169,7 @@ namespace Semmle.Autobuild
                 arguments.Append(" &&");
         }
 
-        public CommandBuilder RunCommand(string exe, string argumentsOpt = null, bool quoteExe = true)
+        public CommandBuilder RunCommand(string exe, string argumentsOpt = null)
         {
             var (exe0, arg0) =
                 escapingMode == EscapeMode.Process && exe.EndsWith(".exe", System.StringComparison.Ordinal)
@@ -183,10 +183,7 @@ namespace Semmle.Autobuild
             }
             else
             {
-                if (quoteExe)
-                    QuoteArgument(exe0);
-                else
-                    Argument(exe0);
+                QuoteArgument(exe0);
             }
             Argument(arg0);
             Argument(argumentsOpt);
