@@ -242,7 +242,8 @@ class BarrierGuard extends Guard {
 }
 
 /**
- * A reference contained in an object. This is either a field or a property.
+ * A reference contained in an object. This is either a field, a property,
+ * or an element in a collection.
  */
 class Content extends TContent {
   /** Gets a textual representation of this content. */
@@ -296,4 +297,11 @@ class PropertyContent extends Content, TPropertyContent {
   }
 
   deprecated override DataFlowType getType() { result = Gvn::getGlobalValueNumber(p.getType()) }
+}
+
+/** A reference to an element in a collection. */
+class ElementContent extends Content, TElementContent {
+  override string toString() { result = "[]" }
+
+  override Location getLocation() { result instanceof EmptyLocation }
 }

@@ -146,10 +146,11 @@
 | LocalDataFlow.cs:129:22:129:40 | [library code] call to method Copy | LocalDataFlow.cs:129:22:129:40 | call to method Copy |
 | LocalDataFlow.cs:129:22:129:40 | call to method Copy | LocalDataFlow.cs:129:13:129:40 | SSA def(sink50) |
 | LocalDataFlow.cs:129:34:129:39 | access to local variable sink49 | LocalDataFlow.cs:129:22:129:40 | [library code] call to method Copy |
-| LocalDataFlow.cs:130:15:130:20 | [post] access to local variable sink50 | LocalDataFlow.cs:131:44:131:49 | access to local variable sink50 |
-| LocalDataFlow.cs:130:15:130:20 | access to local variable sink50 | LocalDataFlow.cs:131:44:131:49 | access to local variable sink50 |
-| LocalDataFlow.cs:131:13:131:54 | SSA def(sink51) | LocalDataFlow.cs:132:15:132:20 | access to local variable sink51 |
-| LocalDataFlow.cs:131:22:131:54 | call to method Join | LocalDataFlow.cs:131:13:131:54 | SSA def(sink51) |
+| LocalDataFlow.cs:130:15:130:20 | [post] access to local variable sink50 | LocalDataFlow.cs:131:59:131:64 | access to local variable sink50 |
+| LocalDataFlow.cs:130:15:130:20 | access to local variable sink50 | LocalDataFlow.cs:131:59:131:64 | access to local variable sink50 |
+| LocalDataFlow.cs:131:13:131:71 | SSA def(sink51) | LocalDataFlow.cs:132:15:132:20 | access to local variable sink51 |
+| LocalDataFlow.cs:131:22:131:71 | call to method Join | LocalDataFlow.cs:131:13:131:71 | SSA def(sink51) |
+| LocalDataFlow.cs:131:53:131:70 | { ..., ... } | LocalDataFlow.cs:131:40:131:70 | array creation of type String[] |
 | LocalDataFlow.cs:132:15:132:20 | [post] access to local variable sink51 | LocalDataFlow.cs:133:35:133:40 | access to local variable sink51 |
 | LocalDataFlow.cs:132:15:132:20 | access to local variable sink51 | LocalDataFlow.cs:133:35:133:40 | access to local variable sink51 |
 | LocalDataFlow.cs:133:13:133:41 | SSA def(sink52) | LocalDataFlow.cs:134:15:134:20 | access to local variable sink52 |
@@ -193,10 +194,11 @@
 | LocalDataFlow.cs:153:20:153:40 | [library code] call to method Copy | LocalDataFlow.cs:153:20:153:40 | call to method Copy |
 | LocalDataFlow.cs:153:20:153:40 | call to method Copy | LocalDataFlow.cs:153:9:153:40 | SSA def(nonSink0) |
 | LocalDataFlow.cs:153:32:153:39 | access to local variable nonSink0 | LocalDataFlow.cs:153:20:153:40 | [library code] call to method Copy |
-| LocalDataFlow.cs:154:15:154:22 | [post] access to local variable nonSink0 | LocalDataFlow.cs:155:42:155:49 | access to local variable nonSink0 |
-| LocalDataFlow.cs:154:15:154:22 | access to local variable nonSink0 | LocalDataFlow.cs:155:42:155:49 | access to local variable nonSink0 |
-| LocalDataFlow.cs:155:9:155:54 | SSA def(nonSink0) | LocalDataFlow.cs:156:15:156:22 | access to local variable nonSink0 |
-| LocalDataFlow.cs:155:20:155:54 | call to method Join | LocalDataFlow.cs:155:9:155:54 | SSA def(nonSink0) |
+| LocalDataFlow.cs:154:15:154:22 | [post] access to local variable nonSink0 | LocalDataFlow.cs:155:57:155:64 | access to local variable nonSink0 |
+| LocalDataFlow.cs:154:15:154:22 | access to local variable nonSink0 | LocalDataFlow.cs:155:57:155:64 | access to local variable nonSink0 |
+| LocalDataFlow.cs:155:9:155:71 | SSA def(nonSink0) | LocalDataFlow.cs:156:15:156:22 | access to local variable nonSink0 |
+| LocalDataFlow.cs:155:20:155:71 | call to method Join | LocalDataFlow.cs:155:9:155:71 | SSA def(nonSink0) |
+| LocalDataFlow.cs:155:51:155:70 | { ..., ... } | LocalDataFlow.cs:155:38:155:70 | array creation of type String[] |
 | LocalDataFlow.cs:156:15:156:22 | [post] access to local variable nonSink0 | LocalDataFlow.cs:157:33:157:40 | access to local variable nonSink0 |
 | LocalDataFlow.cs:156:15:156:22 | access to local variable nonSink0 | LocalDataFlow.cs:157:33:157:40 | access to local variable nonSink0 |
 | LocalDataFlow.cs:157:9:157:41 | SSA def(nonSink0) | LocalDataFlow.cs:158:15:158:22 | access to local variable nonSink0 |
@@ -291,10 +293,10 @@
 | LocalDataFlow.cs:219:30:219:127 | call to method Clone | LocalDataFlow.cs:219:22:219:127 | (...) ... |
 | LocalDataFlow.cs:220:15:220:20 | [post] access to local variable sink33 | LocalDataFlow.cs:221:22:221:27 | access to local variable sink33 |
 | LocalDataFlow.cs:220:15:220:20 | access to local variable sink33 | LocalDataFlow.cs:221:22:221:27 | access to local variable sink33 |
-| LocalDataFlow.cs:221:13:221:63 | SSA def(sink48) | LocalDataFlow.cs:222:15:222:20 | access to local variable sink48 |
+| LocalDataFlow.cs:221:13:221:52 | SSA def(sink48) | LocalDataFlow.cs:222:15:222:20 | access to local variable sink48 |
 | LocalDataFlow.cs:221:22:221:27 | [post] access to local variable sink33 | LocalDataFlow.cs:231:40:231:45 | access to local variable sink33 |
 | LocalDataFlow.cs:221:22:221:27 | access to local variable sink33 | LocalDataFlow.cs:231:40:231:45 | access to local variable sink33 |
-| LocalDataFlow.cs:221:22:221:63 | call to method Split | LocalDataFlow.cs:221:13:221:63 | SSA def(sink48) |
+| LocalDataFlow.cs:221:22:221:52 | call to method Remove | LocalDataFlow.cs:221:13:221:52 | SSA def(sink48) |
 | LocalDataFlow.cs:225:9:225:127 | SSA def(nonSink0) | LocalDataFlow.cs:226:15:226:22 | access to local variable nonSink0 |
 | LocalDataFlow.cs:225:20:225:127 | (...) ... | LocalDataFlow.cs:225:9:225:127 | SSA def(nonSink0) |
 | LocalDataFlow.cs:225:28:225:119 | call to method Insert | LocalDataFlow.cs:225:28:225:127 | [library code] call to method Clone |
@@ -302,10 +304,10 @@
 | LocalDataFlow.cs:225:28:225:127 | call to method Clone | LocalDataFlow.cs:225:20:225:127 | (...) ... |
 | LocalDataFlow.cs:226:15:226:22 | [post] access to local variable nonSink0 | LocalDataFlow.cs:227:25:227:32 | access to local variable nonSink0 |
 | LocalDataFlow.cs:226:15:226:22 | access to local variable nonSink0 | LocalDataFlow.cs:227:25:227:32 | access to local variable nonSink0 |
-| LocalDataFlow.cs:227:13:227:68 | SSA def(nonSink15) | LocalDataFlow.cs:228:15:228:23 | access to local variable nonSink15 |
+| LocalDataFlow.cs:227:13:227:57 | SSA def(nonSink15) | LocalDataFlow.cs:228:15:228:23 | access to local variable nonSink15 |
 | LocalDataFlow.cs:227:25:227:32 | [post] access to local variable nonSink0 | LocalDataFlow.cs:240:43:240:50 | access to local variable nonSink0 |
 | LocalDataFlow.cs:227:25:227:32 | access to local variable nonSink0 | LocalDataFlow.cs:240:43:240:50 | access to local variable nonSink0 |
-| LocalDataFlow.cs:227:25:227:68 | call to method Split | LocalDataFlow.cs:227:13:227:68 | SSA def(nonSink15) |
+| LocalDataFlow.cs:227:25:227:57 | call to method Remove | LocalDataFlow.cs:227:13:227:57 | SSA def(nonSink15) |
 | LocalDataFlow.cs:231:13:231:46 | SSA def(sink34) | LocalDataFlow.cs:232:15:232:20 | access to local variable sink34 |
 | LocalDataFlow.cs:231:22:231:46 | object creation of type StringBuilder | LocalDataFlow.cs:231:13:231:46 | SSA def(sink34) |
 | LocalDataFlow.cs:232:15:232:20 | [post] access to local variable sink34 | LocalDataFlow.cs:233:22:233:27 | access to local variable sink34 |
@@ -342,6 +344,7 @@
 | LocalDataFlow.cs:251:22:251:40 | access to local variable taintedDataContract | LocalDataFlow.cs:258:20:258:38 | access to local variable taintedDataContract |
 | LocalDataFlow.cs:251:22:251:46 | [post] access to property AList | LocalDataFlow.cs:260:20:260:44 | access to property AList |
 | LocalDataFlow.cs:251:22:251:46 | access to property AList | LocalDataFlow.cs:260:20:260:44 | access to property AList |
+| LocalDataFlow.cs:251:22:251:49 | [library code] access to indexer | LocalDataFlow.cs:251:22:251:49 | access to indexer |
 | LocalDataFlow.cs:251:22:251:57 | access to property AString | LocalDataFlow.cs:251:13:251:57 | SSA def(sink54) |
 | LocalDataFlow.cs:255:13:255:55 | SSA def(nonTaintedDataContract) | LocalDataFlow.cs:256:20:256:41 | access to local variable nonTaintedDataContract |
 | LocalDataFlow.cs:255:38:255:55 | object creation of type DataContract | LocalDataFlow.cs:255:13:255:55 | SSA def(nonTaintedDataContract) |
@@ -352,6 +355,7 @@
 | LocalDataFlow.cs:258:20:258:38 | access to local variable taintedDataContract | LocalDataFlow.cs:260:20:260:38 | access to local variable taintedDataContract |
 | LocalDataFlow.cs:258:20:258:44 | access to property AnInt | LocalDataFlow.cs:258:9:258:44 | SSA def(nonSink2) |
 | LocalDataFlow.cs:260:9:260:53 | SSA def(nonSink2) | LocalDataFlow.cs:261:15:261:22 | access to local variable nonSink2 |
+| LocalDataFlow.cs:260:20:260:47 | [library code] access to indexer | LocalDataFlow.cs:260:20:260:47 | access to indexer |
 | LocalDataFlow.cs:260:20:260:53 | access to property AnInt | LocalDataFlow.cs:260:9:260:53 | SSA def(nonSink2) |
 | LocalDataFlow.cs:264:17:264:37 | SSA def(taintedTextBox) | LocalDataFlow.cs:265:22:265:35 | access to local variable taintedTextBox |
 | LocalDataFlow.cs:264:34:264:37 | null | LocalDataFlow.cs:264:17:264:37 | SSA def(taintedTextBox) |
@@ -427,9 +431,9 @@
 | LocalDataFlow.cs:353:41:353:47 | tainted | LocalDataFlow.cs:355:15:355:21 | access to parameter tainted |
 | LocalDataFlow.cs:358:44:358:53 | nonTainted | LocalDataFlow.cs:360:15:360:24 | access to parameter nonTainted |
 | LocalDataFlow.cs:363:44:363:44 | x | LocalDataFlow.cs:366:21:366:21 | access to parameter x |
-| LocalDataFlow.cs:363:67:363:68 | os | LocalDataFlow.cs:369:32:369:33 | access to parameter os |
+| LocalDataFlow.cs:363:67:363:68 | os | LocalDataFlow.cs:369:33:369:34 | access to parameter os |
 | LocalDataFlow.cs:366:21:366:21 | access to parameter x | LocalDataFlow.cs:366:16:366:21 | ... = ... |
-| LocalDataFlow.cs:369:32:369:33 | access to parameter os | LocalDataFlow.cs:369:26:369:33 | ... = ... |
+| LocalDataFlow.cs:369:33:369:34 | access to parameter os | LocalDataFlow.cs:369:27:369:34 | ... = ... |
 | LocalDataFlow.cs:374:41:374:44 | args | LocalDataFlow.cs:376:29:376:32 | access to parameter args |
 | LocalDataFlow.cs:376:29:376:32 | [post] access to parameter args | LocalDataFlow.cs:377:27:377:30 | access to parameter args |
 | LocalDataFlow.cs:376:29:376:32 | access to parameter args | LocalDataFlow.cs:377:27:377:30 | access to parameter args |
@@ -785,8 +789,12 @@
 | Splitting.cs:51:13:51:36 | [b (line 46): true] SSA def(y) | Splitting.cs:52:9:52:9 | [b (line 46): true] access to local variable y |
 | Splitting.cs:51:17:51:36 | [b (line 46): false] array creation of type String[] | Splitting.cs:51:13:51:36 | [b (line 46): false] SSA def(y) |
 | Splitting.cs:51:17:51:36 | [b (line 46): true] array creation of type String[] | Splitting.cs:51:13:51:36 | [b (line 46): true] SSA def(y) |
+| Splitting.cs:51:30:51:36 | [b (line 46): false] { ..., ... } | Splitting.cs:51:17:51:36 | [b (line 46): false] array creation of type String[] |
+| Splitting.cs:51:30:51:36 | [b (line 46): true] { ..., ... } | Splitting.cs:51:17:51:36 | [b (line 46): true] array creation of type String[] |
 | Splitting.cs:52:9:52:9 | [b (line 46): false] access to local variable y | Splitting.cs:53:17:53:17 | [b (line 46): false] access to local variable y |
 | Splitting.cs:52:9:52:9 | [b (line 46): true] access to local variable y | Splitting.cs:53:17:53:17 | [b (line 46): true] access to local variable y |
+| Splitting.cs:52:9:52:9 | [post] [b (line 46): false] access to local variable y | Splitting.cs:53:17:53:17 | [b (line 46): false] access to local variable y |
+| Splitting.cs:52:9:52:9 | [post] [b (line 46): true] access to local variable y | Splitting.cs:53:17:53:17 | [b (line 46): true] access to local variable y |
 | Splitting.cs:53:9:53:20 | [b (line 46): false] SSA def(x) | Splitting.cs:54:17:54:17 | [b (line 46): false] access to local variable x |
 | Splitting.cs:53:9:53:20 | [b (line 46): true] SSA def(x) | Splitting.cs:54:17:54:17 | [b (line 46): true] access to local variable x |
 | Splitting.cs:53:13:53:20 | [b (line 46): false] ... + ... | Splitting.cs:53:9:53:20 | [b (line 46): false] SSA def(x) |

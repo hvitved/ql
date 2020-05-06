@@ -17,5 +17,10 @@ class MyFlowSource extends DataFlow::Node {
       e.(DelegateCreation).getArgument().(MethodAccess).getTarget().hasName("TaintedMethod") or
       e.(LambdaExpr).getExpressionBody().(StringLiteral).getValue() = "taint source"
     )
+    or
+    exists(MyFlowSource mid, DataFlow::ExprNode e |
+      TaintTracking::localTaintStep+(mid, e) and
+      e.getExpr() = this.asExpr().(ArrayCreation).getInitializer().getAnElement()
+    )
   }
 }

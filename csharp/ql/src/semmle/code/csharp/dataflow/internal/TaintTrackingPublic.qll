@@ -26,5 +26,5 @@ predicate localTaintStep(DataFlow::Node nodeFrom, DataFlow::Node nodeTo) {
   // Ordinary data flow
   DataFlow::localFlowStep(nodeFrom, nodeTo)
   or
-  localAdditionalTaintStep(nodeFrom, nodeTo)
+  defaultAdditionalTaintStep(nodeFrom, nodeTo)
 }
