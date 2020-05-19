@@ -1,4 +1,5 @@
 edges
+| Index.cshtml.g.cs:34:19:34:31 | access to property Query : IQueryCollection | Index.cshtml.g.cs:42:16:42:22 | call to operator implicit conversion |
 | XSSAspNet.cs:20:25:20:43 | access to property QueryString : NameValueCollection | XSSAspNet.cs:27:30:27:34 | access to local variable sayHi |
 | XSSAspNet.cs:20:25:20:43 | access to property QueryString : NameValueCollection | XSSAspNet.cs:37:40:37:44 | access to local variable sayHi |
 | XSSAspNet.cs:44:28:44:46 | access to property QueryString : NameValueCollection | XSSAspNet.cs:44:28:44:55 | access to indexer |
@@ -8,6 +9,7 @@ edges
 | XSSAspNetCore.cs:61:44:61:56 | access to property Query : IQueryCollection | XSSAspNetCore.cs:61:44:61:66 | access to indexer |
 | XSSAspNetCore.cs:72:51:72:65 | access to property Headers : IHeaderDictionary | XSSAspNetCore.cs:72:51:72:72 | call to operator implicit conversion |
 #select
+| Index.cshtml.g.cs:42:16:42:22 | call to operator implicit conversion | Index.cshtml.g.cs:34:19:34:31 | access to property Query : IQueryCollection | Index.cshtml.g.cs:42:16:42:22 | call to operator implicit conversion | $@ flows to here and is written to HTML or JavaScript: Microsoft.AspNetCore.Mvc.ViewFeatures.HtmlHelper.Raw() method. | Index.cshtml.g.cs:34:19:34:31 | access to property Query : IQueryCollection | User-provided value |
 | XSSAspNet.cs:27:30:27:34 | access to local variable sayHi | XSSAspNet.cs:20:25:20:43 | access to property QueryString : NameValueCollection | XSSAspNet.cs:27:30:27:34 | access to local variable sayHi | $@ flows to here and is written to HTML or JavaScript: System.Web.WebPages.WebPage.WriteLiteral() method. | XSSAspNet.cs:20:25:20:43 | access to property QueryString : NameValueCollection | User-provided value |
 | XSSAspNet.cs:37:40:37:44 | access to local variable sayHi | XSSAspNet.cs:20:25:20:43 | access to property QueryString : NameValueCollection | XSSAspNet.cs:37:40:37:44 | access to local variable sayHi | $@ flows to here and is written to HTML or JavaScript: System.Web.WebPages.WebPage.WriteLiteralTo() method. | XSSAspNet.cs:20:25:20:43 | access to property QueryString : NameValueCollection | User-provided value |
 | XSSAspNet.cs:44:28:44:55 | access to indexer | XSSAspNet.cs:44:28:44:46 | access to property QueryString : NameValueCollection | XSSAspNet.cs:44:28:44:55 | access to indexer | $@ flows to here and is written to HTML or JavaScript. | XSSAspNet.cs:44:28:44:46 | access to property QueryString : NameValueCollection | User-provided value |
