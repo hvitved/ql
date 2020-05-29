@@ -182,7 +182,8 @@ private newtype TCallableFlowSink =
   TCallableFlowSinkQualifier() or
   TCallableFlowSinkReturn() or
   TCallableFlowSinkArg(int i) { exists(SourceDeclarationCallable c | exists(c.getParameter(i))) } or
-  TCallableFlowSinkDelegateArg(int i, int j) { hasDelegateArgumentPosition2(_, i, j) }
+  TCallableFlowSinkDelegateArg(int i, int j) { hasDelegateArgumentPosition2(_, i, j) } or
+  TCallableFlowSinkJump(SourceDeclarationCallable c)
 
 /** A flow sink specification. */
 class CallableFlowSink extends TCallableFlowSink {
@@ -314,6 +315,21 @@ class CallableFlowSinkDelegateArg extends CallableFlowSink, TCallableFlowSinkDel
           .getParameter(parameterIndex)
           .getType()
   }
+}
+
+/** A flow sink specification: parameter of a delegate argument. */
+class CallableFlowSinkJump extends CallableFlowSink, TCallableFlowSinkJump {
+  private SourceDeclarationCallable jumpTarget;
+
+  CallableFlowSinkJump() { this = TCallableFlowSinkJump(jumpTarget) }
+
+  SourceDeclarationCallable getTarget() { result = jumpTarget }
+
+  override string toString() { result = "jump to " + jumpTarget }
+
+  override Expr getSink(Call c) { none() }
+
+  override Type getSinkType(Call c) { none() }
 }
 
 /** A specification of data flow for a library (non-source code) type. */

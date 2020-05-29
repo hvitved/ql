@@ -493,7 +493,7 @@ private module Cached {
       CallableFlowSink sink, AccessPath sinkAp, boolean preservesValue, int state
     ) {
       LibraryFlow::libraryFlow(callCfn.getElement(), source, sourceAp, sink, sinkAp, preservesValue) and
-      state in [0 .. LibraryFlow::maxState(sourceAp, sinkAp, preservesValue)]
+      state in [0 .. LibraryFlow::maxState(sourceAp, sink, sinkAp, preservesValue)]
     } or
     TParamsArgumentNode(ControlFlow::Node callCfn) {
       callCfn = any(Call c | isParamsArg(c, _, _)).getAControlFlowNode()
@@ -521,7 +521,10 @@ private module Cached {
     or
     LocalFlow::localFlowStepCil(nodeFrom, nodeTo)
     or
-    exists(LibraryCodeNode n | n.preservesValue() |
+    exists(LibraryCodeNode n |
+      n.preservesValue() and
+      nodeFrom.getEnclosingCallable() = nodeTo.getEnclosingCallable()
+    |
       n = nodeTo and
       nodeFrom = n.getPredecessor(TContentNone())
       or
@@ -548,8 +551,19 @@ private module Cached {
    * taken into account.
    */
   cached
-  predicate jumpStepImpl(ExprNode pred, ExprNode succ) {
+  predicate jumpStepImpl(Node pred, Node succ) {
     pred.(NonLocalJumpNode).getAJumpSuccessor(true) = succ
+    or
+    exists(LibraryCodeNode n |
+      n.preservesValue() and
+      pred.getEnclosingCallable() != succ.getEnclosingCallable()
+    |
+      n = succ and
+      pred = n.getPredecessor(TContentNone())
+      or
+      n = pred and
+      succ = n.getSuccessor(TContentNone())
+    )
   }
 
   cached
@@ -1412,33 +1426,38 @@ module LibraryFlow {
 
   /**
    * Holds if an extra state is needed for summaries that read data as specified
-   * by `sourceAp`, writes data as specified by `sinkAp`, and preserves
+   * by `sourceAp`, writes data as specified by `sink` and `sinkAp`, and preserves
    * values as specified by `preservesValue`.
    *
-   * An extra state is needed between the last read and the first store when
+   * An extra state is needed between the last read and the first store when either
    * `preservesValue = false` (in this case the extra node is needed as the type
-   * of the tracked value may change).
+   * may change) or when `sink instanceof CallableFlowSinkJump` (in this case a
+   * jump-step must be inserted), or possibly both.
    */
-  predicate needsExtraState(AccessPath sourceAp, AccessPath sinkAp, boolean preservesValue) {
-    libraryFlow(_, _, sourceAp, _, sinkAp, preservesValue) and
+  predicate needsExtraState(
+    AccessPath sourceAp, CallableFlowSink sink, AccessPath sinkAp, boolean preservesValue
+  ) {
+    libraryFlow(_, _, sourceAp, sink, sinkAp, preservesValue) and
     sourceAp.length() > 0 and
     sinkAp.length() > 0 and
-    preservesValue = false
+    (preservesValue = false or sink instanceof CallableFlowSinkJump)
   }
 
   /**
    * Gets the maximum state needed to model flow through library code that
    * reads data as specified by `sourceAp`, writes data as specified by
-   * `sinkAp`, and preserves value as specified by `preservesValue`.
+   * `sink` and `sinkAp`, and preserves value as specified by `preservesValue`.
    */
   pragma[nomagic]
-  int maxState(AccessPath sourceAp, AccessPath sinkAp, boolean preservesValue) {
-    libraryFlow(_, _, sourceAp, _, sinkAp, preservesValue) and
+  int maxState(AccessPath sourceAp, CallableFlowSink sink, AccessPath sinkAp, boolean preservesValue) {
+    libraryFlow(_, _, sourceAp, sink, sinkAp, preservesValue) and
     exists(int ret |
       ret =
         max(int i | i = 0 or i = sourceAp.length() - 1) +
           max(int i | i = 0 or i = sinkAp.length() - 1) and
-      if needsExtraState(sourceAp, sinkAp, preservesValue) then result = ret + 1 else result = ret
+      if needsExtraState(sourceAp, sink, sinkAp, preservesValue)
+      then result = ret + 1
+      else result = ret
     )
   }
 
@@ -1581,9 +1600,14 @@ class LibraryCodeNode extends Node, TLibraryCodeNode {
         or
         // Extra state after the last read, before the first store
         c = TContentNone() and
-        LibraryFlow::needsExtraState(sourceAp, sinkAp, preservesValue)
+        LibraryFlow::needsExtraState(sourceAp, sink, sinkAp, preservesValue)
       )
     )
+  }
+
+  /** Gets a jump target for the underlying jump sink, if any. */
+  private Call getAJumpTarget() {
+    result.getTarget().getSourceDeclaration() = sink.(CallableFlowSinkJump).getTarget()
   }
 
   /**
@@ -1592,7 +1616,7 @@ class LibraryCodeNode extends Node, TLibraryCodeNode {
    */
   Node getSuccessor(TContentOption c) {
     exists(int maxState |
-      maxState = LibraryFlow::maxState(sourceAp, sinkAp, preservesValue) and
+      maxState = LibraryFlow::maxState(sourceAp, sink, sinkAp, preservesValue) and
       c = LibraryFlow::getContentByIndex(sinkAp, maxState - state)
     |
       // The last state exits to a non-library-code node
@@ -1643,6 +1667,8 @@ class LibraryCodeNode extends Node, TLibraryCodeNode {
           dcall.isArgumentOf(call, delegateIndex) and
           callCfn = call.getControlFlowNode()
         )
+        or
+        result.asExpr() = this.getAJumpTarget()
       )
       or
       // Proceed to the next state if more fields need to be stored into
@@ -1664,7 +1690,7 @@ class LibraryCodeNode extends Node, TLibraryCodeNode {
     // a state after having stored into a field: the type of the class
     // containing the field
     exists(int maxState, Content c |
-      maxState = LibraryFlow::maxState(sourceAp, sinkAp, preservesValue) and
+      maxState = LibraryFlow::maxState(sourceAp, sink, sinkAp, preservesValue) and
       c = sinkAp.drop(maxState - state + 1).getHead() and
       result = LibraryFlow::getContentContainerType(c)
     )
@@ -1676,16 +1702,22 @@ class LibraryCodeNode extends Node, TLibraryCodeNode {
     or
     // taint step with stores and reads; the type of the node between reads
     // and stores is the type of the first field to be stored
-    LibraryFlow::needsExtraState(sourceAp, sinkAp, preservesValue) and
+    LibraryFlow::needsExtraState(sourceAp, sink, sinkAp, preservesValue) and
     state = sourceAp.length() and
     result = LibraryFlow::getContentType(sinkAp.drop(sinkAp.length() - 1).getHead())
   }
 
-  override Callable getEnclosingCallable() { result = callCfn.getEnclosingCallable() }
+  private Call getCallSite() {
+    if sink instanceof CallableFlowSinkJump and state >= sourceAp.length()
+    then result = this.getAJumpTarget()
+    else result.getAControlFlowNode() = callCfn
+  }
 
-  override Location getLocation() { result = callCfn.getLocation() }
+  override Callable getEnclosingCallable() { result = this.getCallSite().getEnclosingCallable() }
 
-  override string toString() { result = "[library code] " + callCfn }
+  override Location getLocation() { result = this.getCallSite().getLocation() }
+
+  override string toString() { result = "[library code] " + this.getCallSite() }
 }
 
 /** A field or a property. */
@@ -1701,11 +1733,19 @@ class FieldOrProperty extends Assignable, Modifiable {
     this instanceof Field or
     this =
       any(Property p |
-        not p.isOverridableOrImplementable() and
+        //not p.isOverridableOrImplementable() and
         (
           p.isAutoImplemented()
           or
           p.matchesHandle(any(CIL::TrivialProperty tp))
+          or
+          p.getDeclaringType() instanceof Interface
+        ) and
+        forall(Property p0 |
+          p0 = p.getAnOverrider() or
+          p0 = p.getAnImplementor()
+        |
+          p0.(FieldOrProperty).isFieldLike()
         )
       )
   }
@@ -1947,7 +1987,7 @@ private predicate viableConstantBooleanParamArg(
   )
 }
 
-int accessPathLimit() { result = 3 }
+int accessPathLimit() { result = 5 }
 
 /**
  * Holds if `n` does not require a `PostUpdateNode` as it either cannot be

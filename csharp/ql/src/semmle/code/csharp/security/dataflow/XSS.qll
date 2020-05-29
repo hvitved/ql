@@ -138,7 +138,19 @@ module XSS {
     override predicate isSink(DataFlow::Node sink) { sink instanceof Sink }
 
     override predicate isSanitizer(DataFlow::Node node) { node instanceof Sanitizer }
+
+    override int explorationLimit() { result = 50 }
   }
+
+  // 6. check partial flow
+private predicate qq2_partial(Callable c, DataFlow::PartialPathNode n, DataFlow::Node src, int dist) {
+  exists(TaintTrackingConfiguration conf, DataFlow::PartialPathNode source |
+    conf.hasPartialFlow(source, n, dist) and
+    src = source.getNode() and
+    c = n.getNode().getEnclosingCallable() and
+    src.getLocation().getFile().getStem() = "BlogEntryReply.aspx"
+  )
+}
 
   /** A source of remote user input. */
   class RemoteSource extends Source {
