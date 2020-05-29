@@ -9,7 +9,7 @@ import csharp
 private import RuntimeCallable
 
 /** A call. */
-class DispatchCall extends Internal::TDispatchCall {
+class DispatchCall extends DispatchInternal::TDispatchCall {
   /** Gets a textual representation of this call. */
   string toString() { result = getCall().toString() }
 
@@ -17,23 +17,23 @@ class DispatchCall extends Internal::TDispatchCall {
   Location getLocation() { result = getCall().getLocation() }
 
   /** Gets the underlying expression of this call. */
-  Expr getCall() { result = Internal::getCall(this) }
+  Expr getCall() { result = DispatchInternal::getCall(this) }
 
   /** Gets the `i`th argument of this call. */
-  Expr getArgument(int i) { result = Internal::getArgument(this, i) }
+  Expr getArgument(int i) { result = DispatchInternal::getArgument(this, i) }
 
   /** Gets the qualifier of this call, if any. */
-  Expr getQualifier() { result = Internal::getQualifier(this) }
+  Expr getQualifier() { result = DispatchInternal::getQualifier(this) }
 
   /** Gets a static (compile-time) target of this call. */
-  Callable getAStaticTarget() { result = Internal::getAStaticTarget(this) }
+  Callable getAStaticTarget() { result = DispatchInternal::getAStaticTarget(this) }
 
   /** Gets a dynamic (run-time) target of this call, if any. */
-  RuntimeCallable getADynamicTarget() { result = Internal::getADynamicTarget(this) }
+  RuntimeCallable getADynamicTarget() { result = DispatchInternal::getADynamicTarget(this) }
 }
 
-/** Internal implementation details. */
-private module Internal {
+/** INTERNAL: Do not use. */
+module DispatchInternal {
   private import OverridableCallable
   private import semmle.code.csharp.Conversion
   private import semmle.code.csharp.Unification
@@ -258,6 +258,57 @@ private module Internal {
       hasQualifierTypeOverridden0(t, this) and
       hasCallable(any(OverridableCallable oc | hasQualifierTypeOverridden1(oc, this)), t, c)
     }
+
+    /**
+     * Holds if the set of viable implementations that can be called by `ma`
+     * might be improved by knowing the call context. This is the case if the
+     * qualifier is the `i`th parameter of the enclosing callable `c`.
+     */
+    predicate mayBenefitFromCallContext(Callable c, int i) {
+      exists(Ssa::ExplicitDefinition paramDef, Parameter p |
+        paramDef
+            .getADefinition()
+            .(AssignableDefinitions::ImplicitParameterDefinition)
+            .getParameter() = p and
+        2 <= strictcount(this.getADynamicTarget()) and
+        this.getQualifier() = paramDef.getARead() and
+        p.getPosition() = i and
+        c.getAParameter() = p and
+        not p.isParams() and
+        c = this.getCall().getEnclosingCallable()
+      )
+    }
+
+    /**
+     * Gets a viable dispatch target of `ma` in the context `ctx`. This is
+     * restricted to those `ma`s for which a context might make a difference.
+     */
+    abstract RuntimeCallable getADynamicTargetInCallContext(Call ctx);
+  }
+
+  /**
+   * Holds if the call `ctx` might act as a context that improves the set of
+   * dispatch targets of a `MethodAccess` that occurs in a viable target of
+   * `ctx`.
+   */
+  pragma[nomagic]
+  private predicate relevantContext(Call call, int i) {
+    exists(Callable c |
+      any(DispatchMethodOrAccessorCall mc).mayBenefitFromCallContext(c, i) and
+      c = call.getARuntimeTarget()
+    )
+  }
+
+  /**
+   * Holds if the `i`th argument of `ctx` has type `t` and `ctx` is a
+   * relevant call context.
+   */
+  private predicate contextArgHasType(Call ctx, int i, Type t, boolean isExact) {
+    exists(Expr arg |
+      relevantContext(ctx, i) and
+      ctx.getArgument(i) = arg and
+      t = getAPossibleType(arg, isExact)
+    )
   }
 
   private class DynamicFieldOrProperty extends Assignable {
@@ -304,7 +355,7 @@ private module Internal {
    * origin of `e`, and in case `e` is a dynamic member access, only types
    * corresponding to the type of a relevant field or property are included.
    */
-  private Type getAPossibleType(Expr e, boolean isExact) {
+  Type getAPossibleType(Expr e, boolean isExact) {
     exists(DynamicFieldOrProperty fp, string name, TypeWithDynamicFieldOrProperty t |
       isPossibleDynamicMemberAccessQualifierType(e, name, t) and
       fp.isMemberOf(name, t)
@@ -386,6 +437,8 @@ private module Internal {
               .getQualifier()
         or
         this = any(DispatchCallImpl c).getQualifier()
+        or
+        this = any(DispatchCallImpl c).getArgument(_)
       }
 
       Source getASource() { stepTC(this, result) }
@@ -528,10 +581,56 @@ private module Internal {
         result = m.getAnOverrider(t)
       )
     }
+
+    pragma[nomagic]
+    private RuntimeInstanceMethod getViableInherited(Call ctx) {
+      result = this.getADynamicTarget() and
+      exists(int i, Callable c, Type t |
+        this.mayBenefitFromCallContext(c, i) and
+        c = ctx.getARuntimeTarget() and
+        contextArgHasType(ctx, i, t, _)
+      |
+        exists(NonConstructedOverridableMethod m |
+          this.getAStaticTarget() = m.getAConstructingMethodOrSelf()
+        |
+          result = m.getInherited(t.getSourceDeclaration())
+          or
+          t instanceof TypeParameter and
+          result = m
+        )
+      )
+    }
+
+    pragma[nomagic]
+    private RuntimeInstanceMethod getAViableOverrider(Call ctx) {
+      result = this.getAViableOverrider() and
+      exists(int i, Callable c, Type t |
+        this.mayBenefitFromCallContext(c, i) and
+        c = ctx.getARuntimeTarget() and
+        contextArgHasType(ctx, i, t, false)
+      |
+        exists(ValueOrRefType t0, NonConstructedOverridableMethod m |
+          this.getAStaticTarget() = m.getAConstructingMethodOrSelf() and
+          result = m.getAnOverrider(t0)
+        |
+          t = t0
+          or
+          Unification::subsumes(t, t0)
+          or
+          t0 = t.(Unification::UnconstrainedTypeParameter).getAnUltimatelySuppliedType()
+        )
+      )
+    }
+
+    override RuntimeMethod getADynamicTargetInCallContext(Call ctx) {
+      result = this.getViableInherited(ctx)
+      or
+      result = this.getAViableOverrider(ctx)
+    }
   }
 
   /** A non-constructed overridable method. */
-  private class NonConstructedOverridableMethod extends OverridableMethod, NonConstructedMethod { }
+  class NonConstructedOverridableMethod extends OverridableMethod, NonConstructedMethod { }
 
   /**
    * A call to an accessor.
@@ -658,6 +757,48 @@ private module Internal {
         this.hasQualifierTypeOverridden(t, a) and
         result = a.getAnOverrider(t)
       )
+    }
+
+    private RuntimeAccessor getViableInherited(Call ctx) {
+      result = this.getADynamicTarget() and
+      exists(int i, Callable c, Type t |
+        this.mayBenefitFromCallContext(c, i) and
+        c = ctx.getARuntimeTarget() and
+        contextArgHasType(ctx, i, t, _)
+      |
+        exists(OverridableAccessor a | this.getAStaticTarget() = a |
+          result = a.getInherited(t.getSourceDeclaration())
+          or
+          t instanceof TypeParameter and
+          result = a
+        )
+      )
+    }
+
+    private RuntimeAccessor getAViableOverrider(Call ctx) {
+      result = this.getAViableOverrider() and
+      exists(int i, Callable c, Type t |
+        this.mayBenefitFromCallContext(c, i) and
+        c = ctx.getARuntimeTarget() and
+        contextArgHasType(ctx, i, t, false)
+      |
+        exists(ValueOrRefType t0, OverridableAccessor a |
+          this.getAStaticTarget() = a and
+          result = a.getAnOverrider(t0)
+        |
+          t = t0
+          or
+          Unification::subsumes(t, t0)
+          or
+          t0 = t.(Unification::UnconstrainedTypeParameter).getAnUltimatelySuppliedType()
+        )
+      )
+    }
+
+    override RuntimeAccessor getADynamicTargetInCallContext(Call ctx) {
+      result = this.getViableInherited(ctx)
+      or
+      result = this.getAViableOverrider(ctx)
     }
   }
 

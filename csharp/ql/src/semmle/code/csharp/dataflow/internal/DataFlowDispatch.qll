@@ -282,6 +282,8 @@ class NonDelegateDataFlowCall extends DataFlowCall, TNonDelegateCall {
     result = getCallableForDataFlow(dc.getADynamicTarget())
   }
 
+  DispatchCall getCall() { result = dc }
+
   override ControlFlow::Nodes::ElementNode getControlFlowNode() { result = cfn }
 
   override DataFlow::ExprNode getNode() { result.getControlFlowNode() = cfn }
@@ -412,3 +414,89 @@ class CilDataFlowCall extends DataFlowCall, TCilCall {
 
   override Location getLocation() { result = call.getLocation() }
 }
+
+// private module Blah {
+// private import DispatchInternal
+// private import semmle.code.csharp.dispatch.RuntimeCallable
+// private import semmle.code.csharp.dispatch.OverridableCallable
+// private import semmle.code.csharp.Unification
+
+// /**
+//     * Holds if the set of viable implementations that can be called by `ma`
+//     * might be improved by knowing the call context. This is the case if the
+//     * qualifier is the `i`th parameter of the enclosing callable `c`.
+//     */
+//     private predicate mayBenefitFromCallContext(DispatchMethodOrAccessorCall mc, Callable c, int i) {
+//       exists(Ssa::ExplicitDefinition paramDef, Parameter p |
+//         paramDef.getADefinition().(AssignableDefinitions::ImplicitParameterDefinition).getParameter() = p and
+//         2 <= strictcount(mc.getADynamicTarget()) and
+//         mc.getQualifier() = paramDef.getARead() and
+//         p.getPosition() = i and
+//         c.getAParameter() = p and
+//         not p.isParams() and
+//         c = mc.getCall().getEnclosingCallable()
+//       )
+//     }
+
+//   /**
+//    * Holds if the call `ctx` might act as a context that improves the set of
+//    * dispatch targets of a `MethodAccess` that occurs in a viable target of
+//    * `ctx`.
+//    */
+//   pragma[nomagic]
+//   private predicate relevantContext(DataFlowCall ctx, int i) {
+//     exists(Callable c |
+//       mayBenefitFromCallContext(_, c, i) and
+//       c = viableCallable(ctx)
+//     )
+//   }
+
+//   /**
+//    * Holds if the `i`th argument of `ctx` has type `t` and `ctx` is a
+//    * relevant call context.
+//    */
+//   private predicate contextArgHasType(DataFlowCall ctx, int i, Type t, boolean isExact) {
+//     exists(ArgumentNode arg | //, Expr src |
+//       relevantContext(ctx, i) and
+//       ctx.getArgument(i) = arg and
+//       t = getAPossibleType(arg.asExpr(), isExact)
+//     )
+//   }
+
+//   /**
+//    * Gets a viable dispatch target of `ma` in the context `ctx`. This is
+//    * restricted to those `ma`s for which a context might make a difference.
+//    */
+//   private Method viableImplInCallContext(DispatchMethodOrAccessorCall mc, DataFlowCall ctx) {
+//     result = mc.getADynamicTarget() and
+//     exists(int i, Callable c, Type t, boolean isExact |
+//       mayBenefitFromCallContext(mc, c, i) and
+//       c = viableCallable(ctx) and
+//       contextArgHasType(ctx, i, t, isExact)
+//     |
+//       // Inherited
+//       exists(NonConstructedOverridableMethod m |
+//         mc.getAStaticTarget() = m.getAConstructingMethodOrSelf()
+        
+//       |
+//         result = m.getInherited(t.getSourceDeclaration())
+//         or
+//         t instanceof TypeParameter and
+//         result = m
+//       )
+//       or
+//       // Overridden
+//       isExact = false and
+//       exists(ValueOrRefType t0, NonConstructedOverridableMethod m |
+//         result = mc.getAViableOverrider() and
+//         result = m.getAnOverrider(t0)
+//         |
+//         t = t0
+//         or
+//         Unification::subsumes(t, t0)
+//         or
+//         t0 = t.(Unification::UnconstrainedTypeParameter).getAnUltimatelySuppliedType()
+//       )
+//     )
+//   }
+// }
