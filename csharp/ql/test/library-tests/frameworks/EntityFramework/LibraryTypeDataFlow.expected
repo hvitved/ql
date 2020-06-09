@@ -1,0 +1,6 @@
+callableFlow
+| Microsoft.EntityFrameworkCore.RawSqlString.RawSqlString(string) | argument 0 -> return | false |
+| Microsoft.EntityFrameworkCore.RawSqlString.implicit conversion(string) | argument 0 -> return | false |
+callableFlowAccessPath
+| Microsoft.EntityFrameworkCore.DbContext.SaveChanges() | qualifier [Persons, [], Id] -> jump to get_Persons [[], Id] | true |
+| Microsoft.EntityFrameworkCore.DbContext.SaveChanges() | qualifier [Persons, [], Name] -> jump to get_Persons [[], Name] | true |

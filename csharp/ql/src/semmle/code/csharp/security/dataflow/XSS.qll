@@ -140,6 +140,8 @@ module XSS {
     override predicate isSink(DataFlow::Node sink) { sink instanceof Sink }
 
     override predicate isSanitizer(DataFlow::Node node) { node instanceof Sanitizer }
+
+    override int explorationLimit() { result = 5 }
   }
 
   /** A source of remote user input. */

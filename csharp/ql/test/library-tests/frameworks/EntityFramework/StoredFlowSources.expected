@@ -2,7 +2,7 @@
 | EntityFramework.cs:27:24:27:29 | access to property Name |
 | EntityFramework.cs:52:18:52:24 | access to property Name |
 | EntityFramework.cs:53:18:53:34 | access to property Name |
-| EntityFrameworkCore.cs:24:22:24:25 | access to property Id |
-| EntityFrameworkCore.cs:25:24:25:29 | access to property Name |
-| EntityFrameworkCore.cs:60:18:60:24 | access to property Name |
-| EntityFrameworkCore.cs:61:18:61:34 | access to property Name |
+| EntityFrameworkCore.cs:30:22:30:25 | access to property Id |
+| EntityFrameworkCore.cs:31:24:31:29 | access to property Name |
+| EntityFrameworkCore.cs:85:18:85:39 | access to property Id |
+| EntityFrameworkCore.cs:86:18:86:41 | access to property Name |

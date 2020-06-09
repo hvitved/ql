@@ -184,7 +184,8 @@ private newtype TCallableFlowSink =
   TCallableFlowSinkQualifier() or
   TCallableFlowSinkReturn() or
   TCallableFlowSinkArg(int i) { exists(SourceDeclarationCallable c | exists(c.getParameter(i))) } or
-  TCallableFlowSinkDelegateArg(int i, int j) { hasDelegateArgumentPosition2(_, i, j) }
+  TCallableFlowSinkDelegateArg(int i, int j) { hasDelegateArgumentPosition2(_, i, j) } or
+  TCallableFlowSinkJump(SourceDeclarationCallable c)
 
 /** A flow sink specification. */
 class CallableFlowSink extends TCallableFlowSink {
@@ -196,7 +197,7 @@ class CallableFlowSink extends TCallableFlowSink {
 
   /**
    * Gets the type of the sink for call `c`. Unlike `getSink()`, this is defined
-   * for all flow sink specifications.
+   * for all flow sink specifications (except `CallableFlowSinkJump`).
    */
   Type getSinkType(Call c) { result = this.getSink(c).getType() }
 }
@@ -310,6 +311,25 @@ class CallableFlowSinkDelegateArg extends CallableFlowSink, TCallableFlowSinkDel
   }
 }
 
+/** A flow sink specification: a jump out to another call. */
+class CallableFlowSinkJump extends CallableFlowSink, TCallableFlowSinkJump {
+  private SourceDeclarationCallable jumpTarget;
+
+  CallableFlowSinkJump() { this = TCallableFlowSinkJump(jumpTarget) }
+
+  /** Gets the target of this jump. */
+  SourceDeclarationCallable getTarget() { result = jumpTarget }
+
+  /** Gets a call that targets this jump. */
+  Call getAJumpTarget() { result.getTarget().getSourceDeclaration() = this.getTarget() }
+
+  override string toString() { result = "jump to " + jumpTarget }
+
+  override Expr getSink(Call c) { none() }
+
+  override Type getSinkType(Call c) { none() }
+}
+
 /** A specification of data flow for a library (non-source code) type. */
 abstract class LibraryTypeDataFlow extends Type {
   LibraryTypeDataFlow() { this = this.getSourceDeclaration() }
@@ -351,6 +371,7 @@ abstract class LibraryTypeDataFlow extends Type {
    * This predicate is needed for QL technical reasons only (the IPA type used
    * to represent access paths needs to be bounded).
    */
+  pragma[nomagic]
   predicate requiresAccessPath(Content head, AccessPath tail) { none() }
 
   /**

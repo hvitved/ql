@@ -586,6 +586,9 @@ private module Cached {
         rk = Summaries::toReturnKind(sink)
       )
     } or
+    TSummaryJumpNode(SourceDeclarationCallable c, CallableFlowSinkJump sink) {
+      Summaries::summary(c, _, _, sink, _, _)
+    } or
     TSummaryDelegateOutNode(SourceDeclarationCallable c, int pos) {
       exists(CallableFlowSourceDelegateArg source |
         Summaries::summary(c, source, _, _, _, _) and
@@ -641,8 +644,10 @@ private module Cached {
    * taken into account.
    */
   cached
-  predicate jumpStepImpl(ExprNode pred, ExprNode succ) {
+  predicate jumpStepImpl(Node pred, Node succ) {
     pred.(NonLocalJumpNode).getAJumpSuccessor(true) = succ
+    or
+    Summaries::summaryJumpStep(pred, succ)
   }
 
   cached
@@ -1632,6 +1637,8 @@ module Summaries {
         result =
           TSummaryDelegateArgumentNode(c, s.getDelegateIndex(), s.getDelegateParameterIndex())
       )
+    or
+    result = TSummaryJumpNode(c, sink)
   }
 
   /**
@@ -1680,6 +1687,17 @@ module Summaries {
       pred = TSummaryInternalNode(c, source, sourceAp, sink, sinkAp, preservesValue, predState) and
       succState.isFirstStoreState() and
       succ = TSummaryInternalNode(c, source, sourceAp, sink, sinkAp, preservesValue, succState)
+    )
+  }
+
+  /**
+   * Holds if there is a jump step from `pred` to `succ`, which is
+   * synthesized from a library-code flow summary.
+   */
+  predicate summaryJumpStep(SummaryJumpNode pred, Node succ) {
+    exists(CallableFlowSinkJump sink |
+      pred = TSummaryJumpNode(_, sink) and
+      succ.asExpr() = sink.getAJumpTarget()
     )
   }
 
@@ -1838,6 +1856,28 @@ module Summaries {
 
     override string toStringImpl() { result = "[library code: " + state + "] " + c }
   }
+
+  /** TODO */
+  private class SummaryJumpNode extends NodeImpl, TSummaryJumpNode {
+    private SourceDeclarationCallable c;
+    private CallableFlowSinkJump sink;
+
+    SummaryJumpNode() { this = TSummaryJumpNode(c, sink) }
+
+    override Callable getEnclosingCallableImpl() { result = c }
+
+    override DataFlowType getDataFlowType() {
+      result = Gvn::getGlobalValueNumber(sink.getTarget().getReturnType())
+    }
+
+    override DotNet::Type getTypeImpl() { none() }
+
+    override ControlFlow::Node getControlFlowNodeImpl() { none() }
+
+    override Location getLocationImpl() { result = c.getLocation() }
+
+    override string toStringImpl() { result = "[summary] jump to " + sink.getTarget() }
+  }
 }
 
 /** A field or a property. */
@@ -1853,11 +1893,19 @@ class FieldOrProperty extends Assignable, Modifiable {
     this instanceof Field or
     this =
       any(Property p |
-        not p.isOverridableOrImplementable() and
+        //not p.isOverridableOrImplementable() and
         (
           p.isAutoImplemented()
           or
           p.matchesHandle(any(CIL::TrivialProperty tp))
+          or
+          p.getDeclaringType() instanceof Interface
+        ) and
+        forall(Property p0 |
+          p0 = p.getAnOverrider() or
+          p0 = p.getAnImplementor()
+        |
+          p0.(FieldOrProperty).isFieldLike()
         )
       )
   }

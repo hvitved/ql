@@ -2,22 +2,28 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Common;
+using System.Linq;
 
 namespace EFCoreTests
 {
     class Person
     {
-      public int Id { get; set; }
-      public string Name { get; set; }
-    
-      [NotMapped]
-      public int Age { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
+
+        [NotMapped]
+        public int Age { get; set; }
     }
 
     class MyContext : DbContext
     {
-        DbSet<Person> person;
+        public virtual DbSet<Person> Persons { get; set; }
 
+        public static MyContext GetInstance() => null;
+    }
+
+    class Tests
+    {
         void FlowSources()
         {
             var p = new Person();
@@ -28,11 +34,11 @@ namespace EFCoreTests
 
         Microsoft.EntityFrameworkCore.Storage.IRawSqlCommandBuilder builder;
 
-        async void SqlExprs()
+        async void SqlExprs(MyContext ctx)
         {
             // Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlCommand
-            this.Database.ExecuteSqlCommand("");  // SqlExpr
-            await this.Database.ExecuteSqlCommandAsync("");  // SqlExpr
+            ctx.Database.ExecuteSqlCommand("");  // SqlExpr
+            await ctx.Database.ExecuteSqlCommandAsync("");  // SqlExpr
 
             // Microsoft.EntityFrameworkCore.Storage.IRawSqlCommandBuilder.Build
             builder.Build("");  // SqlExpr
@@ -52,16 +58,33 @@ namespace EFCoreTests
             Sink((RawSqlString)taintSource);  // Tainted
             Sink((RawSqlString)(FormattableString)$"{taintSource}");  // Tainted, but not reported because conversion operator is in a stub .cs file
 
-            // Tainted via database, even though technically there were no reads or writes to the database in this particular case.
             var p1 = new Person { Name = taintSource };
-            p1.Name = untaintedSource;
             var p2 = new Person();
 
-            Sink(p2.Name);  // Tainted
-            Sink(new Person().Name);  // Tainted
+            AddPersonToDB(p1);
+            AddPersonToDB(p2);
 
-            p1.Age = int.Parse(taintSource);
-            Sink(p2.Age);  // Not tainted due to NotMappedAttribute
+            var ctx = MyContext.GetInstance();
+            ctx.Persons.Add(p1);
+
+            var p3 = new Person { Age = 42 };
+            ctx.Persons.Add(p3);
+            ctx.SaveChanges();
+        }
+
+        void AddPersonToDB(Person p)
+        {
+            var ctx = MyContext.GetInstance();
+            ctx.Persons.Add(p);
+            ctx.SaveChanges();
+        }
+
+        void ReadFirstPersonFromDB()
+        {
+            var ctx = MyContext.GetInstance();
+            Sink(ctx.Persons.First().Id);
+            Sink(ctx.Persons.First().Name);
+            Sink(ctx.Persons.First().Age);
         }
 
         void Sink(object @object)

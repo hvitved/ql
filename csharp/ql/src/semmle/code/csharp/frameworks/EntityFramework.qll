@@ -3,6 +3,7 @@
  */
 
 import csharp
+private import DataFlow
 private import semmle.code.csharp.frameworks.system.data.Entity
 private import semmle.code.csharp.frameworks.system.collections.Generic
 private import semmle.code.csharp.frameworks.Sql
@@ -111,8 +112,10 @@ module EntityFramework {
     }
   }
 
+  abstract class EFLibraryTypeDataFlow extends LibraryTypeDataFlow { }
+
   /** The struct `Microsoft.EntityFrameworkCore.RawSqlString`. */
-  class RawSqlStringStruct extends Struct, LibraryTypeDataFlow {
+  class RawSqlStringStruct extends Struct, EFLibraryTypeDataFlow {
     RawSqlStringStruct() { this.getQualifiedName() = "Microsoft.EntityFrameworkCore.RawSqlString" }
 
     override predicate callableFlow(
@@ -121,6 +124,7 @@ module EntityFramework {
     ) {
       c = this.getAConstructor() and
       source.(CallableFlowSourceArg).getArgumentIndex() = 0 and
+      c.getNumberOfParameters() > 0 and
       sink instanceof CallableFlowSinkReturn and
       preservesValue = false
       or
@@ -193,17 +197,104 @@ module EntityFramework {
   }
 
   /**
-   * A dataflow node whereby data flows from a property write to a property read
-   * via some database. The assumption is that all writes can flow to all reads.
+   * Custom flow through `StringValues` library class
    */
-  class MappedPropertyJumpNode extends DataFlow::NonLocalJumpNode {
-    MappedProperty property;
+  class DbContextFlow extends EFLibraryTypeDataFlow, Class {
+    DbContextFlow() { this.getBaseClass*().getSourceDeclaration() instanceof DbContext }
 
-    MappedPropertyJumpNode() { this.asExpr() = property.getAnAssignedValue() }
+    Property getADbSetProperty(ValueOrRefType elementType) {
+      exists(ConstructedClass c |
+        result.getType() = c and
+        c.getSourceDeclaration() instanceof DbSet and
+        elementType = c.getTypeArgument(0) and
+        this.hasMember(any(Property p | result = p.getSourceDeclaration()))
+      )
+    }
 
-    override DataFlow::Node getAJumpSuccessor(boolean preservesValue) {
-      result.asExpr().(PropertyRead).getTarget() = property and
-      preservesValue = false
+    predicate stepFwd(Content c1, Type t1, Content c2, Type t2) {
+      exists(Property p1 |
+        p1 = this.getADbSetProperty(t2) and
+        c1.(PropertyContent).getProperty() = p1 and
+        t1 = p1.getType() and
+        c2 instanceof ElementContent
+      )
+      or
+      stepFwd(_, _, c1, t1) and
+      (
+        exists(Property p |
+          p.getDeclaringType() = t1 and
+          c2.(PropertyContent).getProperty() = p and
+          t2 = p.getType()
+        )
+        or
+        exists(ConstructedInterface ci |
+          t1.(ValueOrRefType).getABaseType*() = ci and
+          not t1 instanceof StringType and
+          ci.getSourceDeclaration() instanceof SystemCollectionsGenericIEnumerableTInterface and
+          c2 instanceof ElementContent and
+          t2 = ci.getTypeArgument(0)
+        )
+      )
+    }
+
+    predicate source(PropertyContent head, AccessPath tail, Property p) {
+      exists(ValueOrRefType elementType |
+        head.(PropertyContent).getProperty() = this.getADbSetProperty(elementType) and
+        p = elementType.getAProperty().getSourceDeclaration() and
+        tail = AccessPath::properties(p) and
+        not p.getAnAttribute() instanceof DataAnnotations::NotMappedAttribute
+      )
+    }
+
+    pragma[nomagic]
+    SourceDeclarationCallable getSaveChanges() {
+      this.hasMethod(result) and
+      result.hasName("SaveChanges")
+    }
+
+    override predicate callableFlow(
+      CallableFlowSource source, AccessPath sourceAp, CallableFlowSink sink, AccessPath sinkAp,
+      SourceDeclarationCallable c, boolean preservesValue
+    ) {
+      exists(Property elementProp |
+        preservesValue = true and
+        c = this.getSaveChanges() and
+        source instanceof CallableFlowSourceQualifier and
+        exists(PropertyContent sourceHead, AccessPath sourceTail |
+          this.source(sourceHead, sourceTail, elementProp) and
+          sourceAp = AccessPath::cons(sourceHead, sourceTail)
+        ) and
+        exists(Property dbSetProp, ValueOrRefType elementType, AccessPath sinkTail |
+          dbSetProp = this.getADbSetProperty(elementType) and
+          sink.(CallableFlowSinkJump).getTarget() = dbSetProp.getGetter() and
+          requiresAp2(_, _, sinkTail, _, elementProp) and
+          sinkTail.getHead().(PropertyContent).getProperty() =
+            elementType.getAProperty().getSourceDeclaration() and
+          sinkAp = AccessPath::cons(any(ElementContent ec), sinkTail)
+        )
+      )
+    }
+
+    private predicate requiresAp2(Content head, Type t1, AccessPath tail, Type t2, Property last) {
+      exists(ValueOrRefType elementType, PropertyContent p |
+        exists(this.getADbSetProperty(elementType)) and
+        last = elementType.getAProperty().getSourceDeclaration() and
+        p.getProperty() = last and
+        tail = AccessPath::singleton(p) and
+        this.stepFwd(head, t1, p, t2)
+      )
+      or
+      exists(Content head0, AccessPath tail0 |
+        this.requiresAp2(head0, t2, tail0, _, last) and
+        tail = AccessPath::cons(head0, tail0) and
+        this.stepFwd(head, t1, head0, t2)
+      )
+    }
+
+    override predicate requiresAccessPath(Content head, AccessPath tail) {
+      this.source(head, tail, _)
+      or
+      requiresAp2(head, _, tail, _, _)
     }
   }
 }
