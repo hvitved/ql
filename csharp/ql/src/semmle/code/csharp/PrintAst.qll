@@ -27,8 +27,17 @@ class PrintAstConfiguration extends TPrintAstConfiguration {
   predicate shouldPrint(Element e, File f) { e.fromSource() and f = e.getFile() }
 }
 
-private predicate shouldPrint(Element e, File f) {
-  exists(PrintAstConfiguration config | config.shouldPrint(e, f))
+pragma[noinline]
+private Location getLocation(Element e, File f) {
+  result = e.getLocation() and
+  f = e.getFile()
+}
+
+private predicate shouldPrint(Element e, Location l) {
+  exists(PrintAstConfiguration config, File f |
+    l = getLocation(e, f) and
+    config.shouldPrint(e, f)
+  )
 }
 
 private predicate isImplicitExpression(ControlFlowElement element) {
@@ -70,7 +79,7 @@ private string getQlClass(Element el) {
 private Location getRepresentativeLocation(Element ast) {
   result =
     min(Location loc |
-      loc = ast.getLocation() and shouldPrint(ast, loc.getFile())
+      shouldPrint(ast, loc)
     |
       loc order by loc.getStartLine(), loc.getStartColumn(), loc.getEndLine(), loc.getEndColumn()
     )
@@ -98,19 +107,19 @@ private predicate locationSortKeys(Element ast, string file, int line, int colum
  * tree a bit better.
  */
 private newtype TPrintAstNode =
-  TElementNode(Element element) { shouldPrint(element, element.getFile()) } or
+  TElementNode(Element element) { shouldPrint(element, _) } or
   TParametersNode(Parameterizable parameterizable) {
-    shouldPrint(parameterizable, parameterizable.getFile()) and
+    shouldPrint(parameterizable, _) and
     parameterizable.getNumberOfParameters() > 0 and
     not isNotNeeded(parameterizable)
   } or
   TAttributesNode(Attributable attributable) {
-    shouldPrint(attributable, attributable.(Element).getFile()) and
+    shouldPrint(attributable, _) and
     exists(attributable.getAnAttribute()) and
     not isNotNeeded(attributable)
   } or
   TTypeParametersNode(UnboundGeneric unboundGeneric) {
-    shouldPrint(unboundGeneric, unboundGeneric.getFile()) and
+    shouldPrint(unboundGeneric, _) and
     unboundGeneric.getNumberOfTypeParameters() > 0 and
     not isNotNeeded(unboundGeneric)
   }
@@ -333,7 +342,7 @@ final class ParameterNode extends ElementNode {
     result =
       min(Location loc |
         loc = param.getLocation() and
-        shouldPrint(param, loc.getFile()) and
+        shouldPrint(param, _) and
         loc.getStartLine() = loc.getEndLine()
       |
         loc order by loc.getEndColumn() - loc.getStartColumn()
