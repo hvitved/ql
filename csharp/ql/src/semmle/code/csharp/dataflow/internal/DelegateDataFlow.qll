@@ -192,7 +192,13 @@ private predicate flowsFrom(
   or
   // Local flow
   exists(DataFlow::Node mid | flowsFrom(sink, mid, isReturned, lastCall) |
-    DataFlow::localFlowStep(node, mid) or
+    LocalFlow::localFlowStepCommon(node, mid)
+    or
+    exists(Ssa::Definition def |
+      LocalFlow::localSsaFlowStep(def, node, mid) and
+      LocalFlow::usesInstanceField(def)
+    )
+    or
     node.asExpr() = mid.asExpr().(DelegateCreation).getArgument()
   )
   or

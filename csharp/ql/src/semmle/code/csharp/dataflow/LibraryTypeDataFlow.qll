@@ -205,15 +205,7 @@ class CallableFlowSink extends TCallableFlowSink {
 class CallableFlowSinkQualifier extends CallableFlowSink, TCallableFlowSinkQualifier {
   override string toString() { result = "qualifier" }
 
-  override Expr getSink(Call c) {
-    result = c.getChild(-1)
-    or
-    // E.g. `new Dictionary<int, string>{ {0, "a"}, {1, "b"} }`
-    result.(CollectionInitializer).getAnElementInitializer() = c
-    or
-    // E.g. `new Dictionary<int, string>() { [0] = "a", [1] = "b" }`
-    result.(ObjectInitializer).getAMemberInitializer().getLValue() = c
-  }
+  override Expr getSink(Call c) { result = c.getChild(-1) }
 }
 
 /** A flow sink specification: return value. */
