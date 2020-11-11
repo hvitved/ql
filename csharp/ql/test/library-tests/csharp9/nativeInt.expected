@@ -61,3 +61,28 @@
 | NativeInt.cs:25:22:25:22 | access to local variable x | IntPtr |
 | NativeInt.cs:25:22:25:26 | ... + ... | Int64 |
 | NativeInt.cs:25:26:25:26 | access to local variable v | Int64 |
+| UnaryPattern.cs:8:9:8:9 | access to parameter c | Char |
+| UnaryPattern.cs:8:9:8:20 | ... is ... | Boolean |
+| UnaryPattern.cs:8:14:8:20 | not ... | null |
+| UnaryPattern.cs:8:18:8:20 | a | Char |
+| UnaryPattern.cs:10:9:10:9 | access to parameter c | Object |
+| UnaryPattern.cs:10:9:10:21 | ... is ... | Boolean |
+| UnaryPattern.cs:10:14:10:21 | not ... | null |
+| UnaryPattern.cs:10:18:10:21 | null | null |
+| UnaryPattern.cs:12:9:12:9 | access to parameter c | Object |
+| UnaryPattern.cs:12:9:12:41 | ... is ... | Boolean |
+| UnaryPattern.cs:12:14:12:41 | not ... | null |
+| UnaryPattern.cs:12:18:12:29 | access to type UnaryPattern | UnaryPattern |
+| UnaryPattern.cs:12:18:12:41 | UnaryPattern u | UnaryPattern |
+| UnaryPattern.cs:12:18:12:41 | { ... } | null |
+| UnaryPattern.cs:12:31:12:39 | { ... } | null |
+| UnaryPattern.cs:12:37:12:37 | 1 | Int32 |
+| UnaryPattern.cs:16:16:16:16 | access to parameter i | Int32 |
+| UnaryPattern.cs:16:16:20:9 | ... switch { ... } | String |
+| UnaryPattern.cs:18:13:18:17 | not ... | null |
+| UnaryPattern.cs:18:13:18:28 | ... => ... | String |
+| UnaryPattern.cs:18:17:18:17 | 1 | Int32 |
+| UnaryPattern.cs:18:22:18:28 | "not 1" | String |
+| UnaryPattern.cs:19:13:19:13 | _ | Int32 |
+| UnaryPattern.cs:19:13:19:24 | ... => ... | String |
+| UnaryPattern.cs:19:18:19:24 | "other" | String |

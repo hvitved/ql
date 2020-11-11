@@ -14,6 +14,9 @@ namespace Semmle.Extraction.CSharp.Entities.Expressions
                 case ConstantPatternSyntax constantPattern:
                     return Expression.Create(cx, constantPattern.Expression, parent, child);
 
+                case UnaryPatternSyntax unaryPattern:
+                    return new UnaryPattern(cx, unaryPattern, parent, child);
+
                 case DeclarationPatternSyntax declPattern:
                     // Creates a single local variable declaration.
                     {
