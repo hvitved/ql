@@ -15,30 +15,30 @@ private import ControlFlowGraphImpl
 private import semmle.code.csharp.controlflow.ControlFlowGraph::ControlFlow
 
 private predicate startsBB(ControlFlowElement cfe) {
-  not cfe = succ(_, _) and
+  not succ(_, cfe, _) and
   (
-    exists(succ(cfe, _))
+    succ(cfe, _, _)
     or
-    exists(succExit(cfe, _))
+    succExit(cfe, _, _)
   )
   or
-  strictcount(ControlFlowElement pred, Completion c | cfe = succ(pred, c)) > 1
+  strictcount(ControlFlowElement pred, Completion c | succ(pred, cfe, c)) > 1
   or
-  cfe = succ(_, any(ConditionalCompletion c))
+  succ(_, cfe, any(ConditionalCompletion c))
   or
   exists(ControlFlowElement pred, int i |
-    cfe = succ(pred, _) and
-    i = count(ControlFlowElement succ, Completion c | succ = succ(pred, c))
+    succ(pred, cfe, _) and
+    i = count(ControlFlowElement succ, Completion c | succ(pred, succ, c))
   |
     i > 1
     or
     i = 1 and
-    exists(succExit(pred, _))
+    succExit(pred, _, _)
   )
 }
 
 private predicate intraBBSucc(ControlFlowElement pred, ControlFlowElement succ) {
-  succ = succ(pred, _) and
+  succ(pred, succ, _) and
   not startsBB(succ)
 }
 
@@ -47,7 +47,7 @@ private predicate bbIndex(ControlFlowElement bbStart, ControlFlowElement cfe, in
 
 private predicate succBB(PreBasicBlock pred, PreBasicBlock succ) { succ = pred.getASuccessor() }
 
-private predicate entryBB(PreBasicBlock bb) { bb = succEntry(_) }
+private predicate entryBB(PreBasicBlock bb) { succEntry(_, bb) }
 
 private predicate bbIDominates(PreBasicBlock dom, PreBasicBlock bb) =
   idominance(entryBB/1, succBB/2)(_, dom, bb)
@@ -56,7 +56,7 @@ class PreBasicBlock extends ControlFlowElement {
   PreBasicBlock() { startsBB(this) }
 
   PreBasicBlock getASuccessorByType(SuccessorType t) {
-    result = succ(this.getLastElement(), any(Completion c | t.matchesCompletion(c)))
+    succ(this.getLastElement(), result, any(Completion c | t.matchesCompletion(c)))
   }
 
   PreBasicBlock getASuccessor() { result = this.getASuccessorByType(_) }
@@ -98,9 +98,9 @@ private Completion getConditionalCompletion(ConditionalCompletion cc) {
 class ConditionBlock extends PreBasicBlock {
   ConditionBlock() {
     exists(Completion c | c = getConditionalCompletion(_) |
-      exists(succ(this.getLastElement(), c))
+      succ(this.getLastElement(), _, c)
       or
-      exists(succExit(this.getLastElement(), c))
+      succExit(this.getLastElement(), _, c)
     )
   }
 
@@ -108,12 +108,12 @@ class ConditionBlock extends PreBasicBlock {
     exists(ControlFlowElement last, Completion c |
       last = this.getLastElement() and
       c = getConditionalCompletion(cc) and
-      succ = succ(last, c) and
+      succ(last, succ, c) and
       // In the pre-CFG, we need to account for case where one predecessor node has
       // two edges to the same successor node. Assertion expressions are examples of
       // such nodes.
       not exists(Completion other |
-        succ = succ(last, other) and
+        succ(last, succ, other) and
         other != c
       ) and
       forall(PreBasicBlock pred | pred = succ.getAPredecessor() and pred != this |
