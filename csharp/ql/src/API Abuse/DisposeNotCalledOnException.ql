@@ -15,8 +15,30 @@
  */
 
 import csharp
+import cil
 import Dispose
 import semmle.code.csharp.frameworks.System
+
+predicate cilMethodThrows(CIL::Method m, Type t) {
+  exists(CIL::Instruction i | i = m.getImplementation().getAnInstruction() |
+    t.matchesHandle(i.(CIL::Throw).getExpr().getType())
+    or
+    cilMethodThrows(i.(CIL::Call).getARuntimeTarget(), t)
+  )
+}
+
+pragma[noinline]
+private predicate calls(Method a, Method b) {
+  exists(Call c |
+    c.getEnclosingCallable() = a and
+    b = c.getARuntimeTarget() and
+    not c = any(TryStmt try).getATriedElement()
+  )
+}
+
+private class TriedCall extends Call {
+  TriedCall() { not this = any(TryStmt try).getATriedElement() }
+}
 
 /**
  * Gets an exception type that may be thrown during the execution of method `m`.
@@ -24,14 +46,26 @@ import semmle.code.csharp.frameworks.System
  */
 Class getAThrownException(Method m) {
   m.fromLibrary() and
-  result = any(SystemExceptionClass sc)
+  exists(CIL::Method cm |
+    m.matchesHandle(cm) and
+    cilMethodThrows(cm, result)
+  )
   or
-  exists(ControlFlowElement cfe |
-    cfe = any(ThrowElement te | result = te.getExpr().getType()) or
-    cfe = any(MethodCall mc | result = getAThrownException(mc.getARuntimeTarget()))
-  |
-    cfe.getEnclosingCallable() = m and
-    not isTriedAgainstException(cfe, result)
+  exists(ThrowElement te |
+    result = te.getExpr().getType() and
+    te.getEnclosingCallable() = m and
+    not isTriedAgainstException(te, result)
+  )
+  or
+  exists(Method callee |
+    calls(m, callee) and
+    result = getAThrownException(callee)
+  )
+  or
+  exists(TriedCall tc |
+    tc.getEnclosingCallable() = m and
+    result = getAThrownException(tc.getARuntimeTarget()) and
+    not isTriedAgainstException(tc, result)
   )
 }
 
