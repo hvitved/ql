@@ -24,6 +24,8 @@ private predicate startsBB(ControlFlowElement cfe) {
   or
   strictcount(ControlFlowElement pred, Completion c | cfe = succ(pred, c)) > 1
   or
+  cfe = succ(_, any(ConditionalCompletion c))
+  or
   exists(ControlFlowElement pred, int i |
     cfe = succ(pred, _) and
     i = count(ControlFlowElement succ, Completion c | succ = succ(pred, c))
@@ -95,14 +97,11 @@ private Completion getConditionalCompletion(ConditionalCompletion cc) {
 
 class ConditionBlock extends PreBasicBlock {
   ConditionBlock() {
-    strictcount(Completion c |
-      c = getConditionalCompletion(_) and
-      (
-        exists(succ(this.getLastElement(), c))
-        or
-        exists(succExit(this.getLastElement(), c))
-      )
-    ) > 1
+    exists(Completion c | c = getConditionalCompletion(_) |
+      exists(succ(this.getLastElement(), c))
+      or
+      exists(succExit(this.getLastElement(), c))
+    )
   }
 
   private predicate immediatelyControls(PreBasicBlock succ, ConditionalCompletion cc) {
