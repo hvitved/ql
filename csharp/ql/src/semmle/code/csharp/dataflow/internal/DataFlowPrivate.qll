@@ -1772,6 +1772,7 @@ class DataFlowType extends Gvn::GvnType {
 }
 
 /** Gets the type of `n` used for type pruning. */
+pragma[inline]
 DataFlowType getNodeType(NodeImpl n) { result = n.getDataFlowType() }
 
 /** Gets a string representation of a `DataFlowType`. */
