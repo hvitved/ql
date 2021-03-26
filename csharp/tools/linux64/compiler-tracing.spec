@@ -6,7 +6,9 @@
   prepend --cil
 **/mono*:
 **/dotnet:
-  invoke ${config_dir}/extract-csharp.sh
+  replace yes
+  invoke ${config_dir}/dotnet-wrapper
+  prepend ${compiler}
 **/msbuild:
 **/xbuild:
   replace yes

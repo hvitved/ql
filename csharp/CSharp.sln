@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Semmle.Autobuild.CSharp", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Semmle.Autobuild.CSharp.Tests", "autobuilder\Semmle.Autobuild.CSharp.Tests\Semmle.Autobuild.CSharp.Tests.csproj", "{34256E8F-866A-46C1-800E-3DF69FD1DCB7}"
 EndProject
+Project("{4793EC83-E83D-49EB-B98A-1CF50A347CC6}") = "dotnet-wrapper", "dotnet-wrapper\dotnet-wrapper.csproj", "{A66D85D7-73E2-4CBA-837A-628A4C5475C0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -79,6 +81,10 @@ Global
 		{34256E8F-866A-46C1-800E-3DF69FD1DCB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34256E8F-866A-46C1-800E-3DF69FD1DCB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34256E8F-866A-46C1-800E-3DF69FD1DCB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A66D85D7-73E2-4CBA-837A-628A4C5475C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A66D85D7-73E2-4CBA-837A-628A4C5475C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A66D85D7-73E2-4CBA-837A-628A4C5475C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A66D85D7-73E2-4CBA-837A-628A4C5475C0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
