@@ -268,56 +268,106 @@ private module CallGraph {
         )
     }
 
-    private predicate delegateFlowStep(Expr pred, Expr succ) {
+    pragma[nomagic]
+    private predicate simpleDelegateFlowStep(Expr pred, Expr succ) {
       Steps::stepClosed(pred, succ)
       or
-      exists(Call call, Callable callable |
-        callable.getUnboundDeclaration().canReturn(pred) and
-        call = succ
-      |
-        callable = call.getTarget() or
-        callable = call.getTarget().(Method).getAnOverrider+() or
-        callable = call.getTarget().(Method).getAnUltimateImplementor() or
-        callable = getARuntimeDelegateTarget(call, false)
-      )
-      or
       pred = succ.(DelegateCreation).getArgument()
-      or
-      exists(AssignableDefinition def, Assignable a |
-        a instanceof Field or
-        a instanceof Property
-      |
-        a = def.getTarget() and
-        succ.(AssignableRead) = a.getAnAccess() and
-        pred = def.getSource()
-      )
       or
       exists(AddEventExpr ae | succ.(EventAccess).getTarget() = ae.getTarget() |
         pred = ae.getRValue()
       )
     }
 
-    private predicate reachesDelegateCall(Expr e) {
-      delegateCall(_, e, _)
-      or
-      exists(Expr mid | reachesDelegateCall(mid) | delegateFlowStep(e, mid))
+    private predicate delegateCreationReaches(Callable c, Expr e) {
+      exists(Expr e0 |
+        delegateCreation(e0, c, _) and
+        simpleDelegateFlowStep*(e0, e)
+      )
     }
 
-    pragma[nomagic]
-    private predicate delegateFlowStepReaches(Expr pred, Expr succ) {
-      delegateFlowStep(pred, succ) and
-      reachesDelegateCall(succ)
+    abstract private class Step extends Element {
+      pragma[nomagic]
+      abstract Expr getAnInput();
+
+      pragma[nomagic]
+      abstract Expr getAnOutput();
+
+      private predicate reaches(Expr e) {
+        any(Step pred).reachesStep(this) and
+        e = this.getAnOutput()
+        or
+        exists(Expr mid |
+          this.reaches(mid) and
+          simpleDelegateFlowStep(mid, e)
+        )
+      }
+
+      pragma[nomagic]
+      private predicate reachesStep(Step step) {
+        step = this and
+        delegateCreationReaches(_, this.getAnInput())
+        or
+        exists(Step mid |
+          this.reachesStep(mid) and
+          mid.reaches(step.getAnInput())
+        )
+      }
+
+      pragma[noinline]
+      private Step getASuccStepStarRes() {
+        this.reachesStep(result) and
+        result.delegateCall(_, _)
+      }
+
+      pragma[nomagic]
+      Callable getAPredCallSource() {
+        exists(Step pred |
+          this = pred.getASuccStepStarRes() and
+          delegateCreationReaches(result, pred.getAnInput())
+        )
+      }
+
+      pragma[nomagic]
+      predicate delegateCall(Call c, boolean libraryDelegateCall) {
+        exists(Expr e |
+          this.reaches(e) and
+          delegateCall(c, e, libraryDelegateCall)
+        )
+      }
     }
 
-    private Expr delegateCallSource(Callable c) {
-      delegateCreation(result, c, _)
-      or
-      delegateFlowStepReaches(delegateCallSource(c), result)
+    private class TFieldOrProperty = @field or @property;
+
+    private class FieldOrPropertyStep extends Step, Assignable, TFieldOrProperty {
+      final override Expr getAnInput() { result = this.getAnAssignedValue() }
+
+      final override AssignableRead getAnOutput() { result = this.getAnAccess() }
+    }
+
+    private class CallOutputStep extends Step, Callable {
+      final override Expr getAnInput() { this.getUnboundDeclaration().canReturn(result) }
+
+      final override Expr getAnOutput() {
+        this = result.(Call).getTarget() or
+        this = result.(Call).getTarget().(Method).getAnOverrider+() or
+        this = result.(Call).getTarget().(Method).getAnUltimateImplementor() or
+        this = getARuntimeDelegateTarget(result, false)
+      }
     }
 
     /** Gets a run-time target for the delegate call `c`. */
+    pragma[nomagic]
     Callable getARuntimeDelegateTarget(Call c, boolean libraryDelegateCall) {
-      delegateCall(c, delegateCallSource(result), libraryDelegateCall)
+      exists(Expr e |
+        delegateCreationReaches(result, e) and
+        delegateCall(c, e, libraryDelegateCall)
+      )
+      or
+      exists(Step step |
+        result = step.getAPredCallSource() and
+        step.delegateCall(c, libraryDelegateCall)
+      )
     }
   }
 
