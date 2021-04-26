@@ -306,6 +306,7 @@ module Gvn {
   }
 
   /** Gets the 'i'th type argument of GVN type `t`, which is of kind `k`. */
+  pragma[noinline]
   private GvnTypeArgument getTypeArgument(CompoundTypeKind k, ConstructedGvnType t, int i) {
     exists(ConstructedGvnTypeList l | t = TConstructedGvnType(l) |
       result = l.getArg(i) and
@@ -326,6 +327,14 @@ module Gvn {
     getTypeArgument(k, t, i) = TTypeParameterGvnType()
   }
 
+  pragma[nomagic]
+  private predicate typeArguments(
+    CompoundTypeKind k, GvnTypeArgument arg1, GvnTypeArgument arg2, int i
+  ) {
+    arg1 = getNonTypeParameterTypeArgument(k, _, i) and
+    arg2 = getNonTypeParameterTypeArgument(k, _, i)
+  }
+
   /**
    * Hold if (non-type-parameters) `arg1` and `arg2` are unifiable, and both are
    * the `i`th type argument of a compound type of kind `k`.
@@ -336,119 +345,154 @@ module Gvn {
   ) {
     arg1 = getNonTypeParameterTypeArgument(k, _, i) and
     arg2 = getNonTypeParameterTypeArgument(k, _, i) and
-    (
-      arg1 = arg2
-      or
-      unifiable(arg1, arg2)
-    )
+    // typeArguments(k, arg1, arg2, i) and
+    unifiable(arg1, arg2)
   }
 
-  /**
-   * Hold if `arg1` and `arg2` are unifiable, and both are the `i`th type argument
-   * of a compound type of kind `k`.
-   */
+  // /**
+  //  * Hold if `arg1` and `arg2` are unifiable, and both are the `i`th type argument
+  //  * of a compound type of kind `k`.
+  //  */
+  // pragma[nomagic]
+  // private predicate unifiableTypeArguments(
+  //   CompoundTypeKind k, GvnTypeArgument arg1, GvnTypeArgument arg2, int i
+  // ) {
+  //   unifiableNonTypeParameterTypeArguments(k, arg1, arg2, i)
+  //   // or
+  //   // arg1 = TTypeParameterGvnType() and
+  //   // typeArgumentIsTypeParameter(k, _, i) and
+  //   // arg2 = getTypeArgument(k, _, i)
+  //   // or
+  //   // arg1 = getTypeArgument(k, _, i) and
+  //   // typeArgumentIsTypeParameter(k, _, i) and
+  //   // arg2 = TTypeParameterGvnType()
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableSingle0(CompoundTypeKind k, ConstructedGvnType t2, GvnTypeArgument arg1) {
+  //   exists(GvnTypeArgument arg2 |
+  //     unifiableNonTypeParameterTypeArguments(k, arg1, arg2, 0) and
+  //     arg2 = getTypeArgument(k, t2, 0) and
+  //     k.getNumberOfTypeParameters() = 1
+  //   )
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableSingle1(CompoundTypeKind k, ConstructedGvnType t) {
+  //   typeArgumentIsTypeParameter(k, t, 0) and
+  //   k.getNumberOfTypeParameters() = 1
+  // }
+  // /**
+  //  * Holds if the type arguments of types `t1` and `t2` are unifiable, `t1`
+  //  * and `t2` are of the same kind, and the number of type arguments is 1.
+  //  */
+  // private predicate unifiableSingle(ConstructedGvnType t1, ConstructedGvnType t2) {
+  //   exists(CompoundTypeKind k |
+  //     exists(GvnTypeArgument arg1 |
+  //       unifiableSingle0(k, t2, arg1) and
+  //       arg1 = getTypeArgument(k, t1, 0)
+  //     )
+  //     or
+  //     unifiableSingle1(k, t1) and
+  //     k = t2.getKind()
+  //     or
+  //     unifiableSingle1(k, t2) and
+  //     k = t1.getKind()
+  //   )
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableMultiple01Aux0(
+  //   CompoundTypeKind k, ConstructedGvnType t2, GvnTypeArgument arg10, GvnTypeArgument arg21
+  // ) {
+  //   exists(GvnTypeArgument arg20 |
+  //     unifiableTypeArguments(k, arg10, arg20, 0) and
+  //     arg20 = getTypeArgument(k, t2, 0) and
+  //     arg21 = getTypeArgument(k, t2, 1)
+  //   )
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableMultiple01Aux1(
+  //   CompoundTypeKind k, ConstructedGvnType t1, GvnTypeArgument arg10, GvnTypeArgument arg21
+  // ) {
+  //   exists(GvnTypeArgument arg11 |
+  //     unifiableTypeArguments(k, arg11, arg21, 1) and
+  //     arg10 = getTypeArgument(k, t1, 0) and
+  //     arg11 = getTypeArgument(k, t1, 1)
+  //   )
+  // }
+  // /**
+  //  * Holds if the first two type arguments of types `t1` and `t2` are unifiable,
+  //  * and both `t1` and `t2` are of kind `k`.
+  //  */
+  // private predicate unifiableMultiple01(
+  //   CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2
+  // ) {
+  //   exists(GvnTypeArgument arg10, GvnTypeArgument arg21 |
+  //     unifiableMultiple01Aux0(k, t2, arg10, arg21) and
+  //     unifiableMultiple01Aux1(k, t1, arg10, arg21)
+  //   )
+  // }
+  // pragma[noinline]
+  // private GvnTypeArgument getTypeArgument2(CompoundTypeKind k, ConstructedGvnType t, int i) {
+  //   result = getTypeArgument(k, t, i) and
+  //   i >= 2
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableMultiple2Aux(
+  //   CompoundTypeKind k, ConstructedGvnType t2, int i, GvnTypeArgument arg1, GvnTypeArgument arg2
+  // ) {
+  //   unifiableTypeArguments(k, arg1, arg2, i) and
+  //   arg2 = getTypeArgument2(k, t2, i)
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableMultiple2A(
+  //   CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2, int i
+  // ) {
+  //   unifiableMultiple(k, t1, t2, i) and
+  //   k.getNumberOfTypeParameters() >= 2
+  // }
+  // pragma[nomagic]
+  // private predicate unifiableMultiple2B(
+  //   CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2, int i
+  // ) {
+  //   exists(GvnTypeArgument arg1, GvnTypeArgument arg2 |
+  //     unifiableMultiple2Aux(k, t2, i, arg1, arg2) and
+  //     arg1 = getTypeArgument2(k, t1, i)
+  //   )
+  // }
   pragma[nomagic]
-  private predicate unifiableTypeArguments(
-    CompoundTypeKind k, GvnTypeArgument arg1, GvnTypeArgument arg2, int i
+  private predicate unifiableMultiple0(
+    CompoundTypeKind k, ConstructedGvnType t2, GvnTypeArgument arg1, int i
   ) {
-    unifiableNonTypeParameterTypeArguments(k, arg1, arg2, i)
-    or
-    arg1 = TTypeParameterGvnType() and
-    typeArgumentIsTypeParameter(k, _, i) and
-    arg2 = getTypeArgument(k, _, i)
-    or
-    arg1 = getTypeArgument(k, _, i) and
-    typeArgumentIsTypeParameter(k, _, i) and
-    arg2 = TTypeParameterGvnType()
-  }
-
-  pragma[nomagic]
-  private predicate unifiableSingle0(CompoundTypeKind k, ConstructedGvnType t2, GvnTypeArgument arg1) {
     exists(GvnTypeArgument arg2 |
-      unifiableTypeArguments(k, arg1, arg2, 0) and
-      arg2 = getTypeArgument(k, t2, 0) and
-      k.getNumberOfTypeParameters() = 1
+      unifiableNonTypeParameterTypeArguments(k, arg1, arg2, i) and
+      arg2 = getTypeArgument(k, t2, i)
     )
   }
 
-  /**
-   * Holds if the type arguments of types `t1` and `t2` are unifiable, `t1`
-   * and `t2` are of the same kind, and the number of type arguments is 1.
-   */
-  private predicate unifiableSingle(ConstructedGvnType t1, ConstructedGvnType t2) {
-    exists(CompoundTypeKind k, GvnTypeArgument arg1 |
-      unifiableSingle0(k, t2, arg1) and
-      arg1 = getTypeArgument(k, t1, 0)
-    )
-  }
-
-  pragma[nomagic]
-  private predicate unifiableMultiple01Aux0(
-    CompoundTypeKind k, ConstructedGvnType t2, GvnTypeArgument arg10, GvnTypeArgument arg21
-  ) {
-    exists(GvnTypeArgument arg20 |
-      unifiableTypeArguments(k, arg10, arg20, 0) and
-      arg20 = getTypeArgument(k, t2, 0) and
-      arg21 = getTypeArgument(k, t2, 1)
-    )
-  }
-
-  pragma[nomagic]
-  private predicate unifiableMultiple01Aux1(
-    CompoundTypeKind k, ConstructedGvnType t1, GvnTypeArgument arg10, GvnTypeArgument arg21
-  ) {
-    exists(GvnTypeArgument arg11 |
-      unifiableTypeArguments(k, arg11, arg21, 1) and
-      arg10 = getTypeArgument(k, t1, 0) and
-      arg11 = getTypeArgument(k, t1, 1)
-    )
-  }
-
-  /**
-   * Holds if the first two type arguments of types `t1` and `t2` are unifiable,
-   * and both `t1` and `t2` are of kind `k`.
-   */
-  private predicate unifiableMultiple01(
-    CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2
-  ) {
-    exists(GvnTypeArgument arg10, GvnTypeArgument arg21 |
-      unifiableMultiple01Aux0(k, t2, arg10, arg21) and
-      unifiableMultiple01Aux1(k, t1, arg10, arg21)
-    )
-  }
-
-  pragma[noinline]
-  private GvnTypeArgument getTypeArgument2(CompoundTypeKind k, ConstructedGvnType t, int i) {
-    result = getTypeArgument(k, t, i) and
-    i >= 2
-  }
-
-  pragma[nomagic]
-  private predicate unifiableMultiple2Aux(
-    CompoundTypeKind k, ConstructedGvnType t2, int i, GvnTypeArgument arg1, GvnTypeArgument arg2
-  ) {
-    unifiableTypeArguments(k, arg1, arg2, i) and
-    arg2 = getTypeArgument2(k, t2, i)
-  }
-
-  pragma[nomagic]
-  private predicate unifiableMultiple2A(
-    CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2, int i
-  ) {
-    unifiableMultiple(k, t1, t2, i) and
-    k.getNumberOfTypeParameters() >= 2
-  }
-
-  pragma[nomagic]
-  private predicate unifiableMultiple2B(
-    CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2, int i
-  ) {
-    exists(GvnTypeArgument arg1, GvnTypeArgument arg2 |
-      unifiableMultiple2Aux(k, t2, i, arg1, arg2) and
-      arg1 = getTypeArgument2(k, t1, i)
-    )
-  }
-
+  // pragma[nomagic]
+  // private predicate unifiableMultiple1(
+  //   CompoundTypeKind k, ConstructedGvnType t2, GvnTypeArgument arg1, int i
+  // ) {
+  //   typeArguments(k, arg1, arg1, i) and
+  //   arg1 = getTypeArgument(k, t2, i)
+  // }
+  // /**
+  //  * Holds if the type arguments of types `t1` and `t2` are unifiable, `t1`
+  //  * and `t2` are of the same kind, and the number of type arguments is 1.
+  //  */
+  // private predicate unifiableSingle(ConstructedGvnType t1, ConstructedGvnType t2, int i) {
+  //   exists(CompoundTypeKind k |
+  //     exists(GvnTypeArgument arg1 |
+  //       unifiableMultiple0(k, t2, arg1, i) and
+  //       arg1 = getTypeArgument(k, t1, i)
+  //     )
+  //     or
+  //     typeArgumentIsTypeParameter(k, t1, i) and
+  //     k = t2.getKind()
+  //     or
+  //     typeArgumentIsTypeParameter(k, t2, i) and
+  //     k = t1.getKind()
+  //   )
+  // }
   /**
    * Holds if the arguments 0 through `i` (with `i >= 1`) of types
    * `t1` and `t2` are unifiable, and both `t1` and `t2` are of kind `k`.
@@ -457,10 +501,47 @@ module Gvn {
   private predicate unifiableMultiple(
     CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2, int i
   ) {
-    unifiableMultiple01(k, t1, t2) and i = 1
+    // unifiableMultiple01(k, t1, t2) and i = 1
+    // or
+    // unifiableMultiple2A(k, t1, t2, i - 1) and
+    // unifiableMultiple2B(k, t1, t2, i)
+    i = 0 and
+    (
+      exists(GvnTypeArgument arg1 |
+        unifiableMultiple0(k, t2, arg1, i) and
+        arg1 = getTypeArgument(k, t1, i)
+      )
+      or
+      getNonTypeParameterTypeArgument(k, t1, i) = getNonTypeParameterTypeArgument(k, t2, i)
+      or
+      typeArgumentIsTypeParameter(k, t1, i) and
+      k = t2.getKind()
+      or
+      typeArgumentIsTypeParameter(k, t2, i) and
+      k = t1.getKind()
+    )
     or
-    unifiableMultiple2A(k, t1, t2, i - 1) and
-    unifiableMultiple2B(k, t1, t2, i)
+    unifiableMultipleRec(k, t1, t2, i) and
+    (
+      exists(GvnTypeArgument arg1 |
+        unifiableMultiple0(k, t2, arg1, i) and
+        arg1 = getTypeArgument(k, t1, i)
+      )
+      or
+      getNonTypeParameterTypeArgument(k, t1, i) = getNonTypeParameterTypeArgument(k, t2, i)
+      or
+      typeArgumentIsTypeParameter(k, t1, i)
+      or
+      typeArgumentIsTypeParameter(k, t2, i)
+    )
+  }
+
+  pragma[nomagic]
+  private predicate unifiableMultipleRec(
+    CompoundTypeKind k, ConstructedGvnType t1, ConstructedGvnType t2, int i
+  ) {
+    unifiableMultiple(k, t1, t2, i - 1) and
+    k.getNumberOfTypeParameters() > i
   }
 
   private newtype TTypePath =
@@ -541,6 +622,28 @@ module Gvn {
       )
     }
 
+    pragma[noinline]
+    private TLeafGvnType getLeafTypeArgument(CompoundTypeKind k, ConstructedGvnType t, int i) {
+      result = getTypeArgument(k, t, i)
+    }
+
+    pragma[noinline]
+    private CompoundTypeKind getConstructedTypeArgument(
+      CompoundTypeKind k, ConstructedGvnType t, int i
+    ) {
+      result = getTypeArgument(k, t, i).(ConstructedGvnType).getKind()
+    }
+
+    private predicate failsUnification(ConstructedGvnType t1, ConstructedGvnType t2) {
+      exists(CompoundTypeKind k, int i |
+        getLeafTypeArgument(k, t1, i) != getLeafTypeArgument(k, t2, i)
+        or
+        getConstructedTypeArgument(k, t1, i) != getConstructedTypeArgument(k, t2, i)
+        or
+        failsUnification(getTypeArgument(k, t1, i), getTypeArgument(k, t2, i))
+      )
+    }
+
     /**
      * Holds if GVNs `t1` and `t2` can be unified. That is, is it possible to
      * replace all type parameters in `t1` and `t2` with some GVNs (possibly
@@ -548,9 +651,8 @@ module Gvn {
      */
     cached
     predicate unifiable(ConstructedGvnType t1, ConstructedGvnType t2) {
-      unifiableSingle(t1, t2)
-      or
-      exists(CompoundTypeKind k | unifiableMultiple(k, t1, t2, k.getNumberOfTypeParameters() - 1))
+      t1.getKind() = t2.getKind() and
+      not failsUnification(t1, t2)
     }
 
     pragma[noinline]
