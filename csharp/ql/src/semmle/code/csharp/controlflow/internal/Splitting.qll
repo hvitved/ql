@@ -264,13 +264,11 @@ module InitializerSplitting {
   predicate constructorInitializeOrder(Constructor c, InitializedInstanceMember m, int i) {
     constructorInitializes(c, m) and
     m =
-      rank[i + 1](InitializedInstanceMember m0 |
-        constructorInitializes(c, m0)
+      rank[i + 1](InitializedInstanceMember m0, Location l |
+        constructorInitializes(c, m0) and
+        l = m0.getLocation()
       |
-        m0
-        order by
-          m0.getLocation().getStartLine(), m0.getLocation().getStartColumn(),
-          m0.getLocation().getFile().getAbsolutePath()
+        m0 order by l.getStartLine(), l.getStartColumn(), l.getFile().getAbsolutePath()
       )
   }
 
@@ -1212,14 +1210,12 @@ module BooleanSplitting {
     exists(Callable c, int r | c = kind.getEnclosingCallable() |
       result = r + ExceptionHandlerSplitting::getNextListOrder() - 1 and
       kind =
-        rank[r](BooleanSplitSubKind kind0 |
+        rank[r](BooleanSplitSubKind kind0, Location l |
           kind0.getEnclosingCallable() = c and
-          kind0.startsSplit(_)
+          kind0.startsSplit(_) and
+          l = kind0.getLocation()
         |
-          kind0
-          order by
-            kind0.getLocation().getStartLine(), kind0.getLocation().getStartColumn(),
-            kind0.toString()
+          kind0 order by l.getStartLine(), l.getStartColumn(), kind0.toString()
         )
     )
   }
@@ -1438,10 +1434,11 @@ module LoopSplitting {
     exists(Callable c, int r | c = enclosingCallable(loop) |
       result = r + BooleanSplitting::getNextListOrder() - 1 and
       loop =
-        rank[r](AnalyzableLoopStmt loop0 |
-          enclosingCallable(loop0) = c
+        rank[r](AnalyzableLoopStmt loop0, Location l |
+          enclosingCallable(loop0) = c and
+          l = loop0.getLocation()
         |
-          loop0 order by loop0.getLocation().getStartLine(), loop0.getLocation().getStartColumn()
+          loop0 order by l.getStartLine(), l.getStartColumn()
         )
     )
   }
