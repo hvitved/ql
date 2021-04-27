@@ -135,10 +135,7 @@ predicate scopeFirst(CfgScope scope, ControlFlowElement first) {
       then first(c.(Constructor).getInitializer(), first)
       else
         if InitializerSplitting::constructorInitializes(c, _)
-        then
-          first(any(InitializerSplitting::InitializedInstanceMember m |
-              InitializerSplitting::constructorInitializeOrder(c, m, 0)
-            ).getInitializer(), first)
+        then first(InitializerSplitting::constructorInitializeOrder(c, _, 0), first)
         else first(c.getBody(), first)
     )
   or
@@ -152,36 +149,36 @@ predicate scopeLast(Callable scope, ControlFlowElement last, Completion c) {
   last(scope.getBody(), last, c) and
   not c instanceof GotoCompletion
   or
-  exists(InitializerSplitting::InitializedInstanceMember m |
-    m = InitializerSplitting::lastConstructorInitializer(scope) and
-    last(m.getInitializer(), last, c) and
-    not scope.hasBody()
-  )
+  last(InitializerSplitting::lastConstructorInitializer(scope, _), last, c) and
+  not scope.hasBody()
 }
 
-private class CallableTree extends ControlFlowTree, Callable {
+private class ConstructorTree extends ControlFlowTree, Constructor {
   final override predicate propagatesAbnormal(ControlFlowElement child) { none() }
 
   final override predicate first(ControlFlowElement first) { none() }
 
   final override predicate last(ControlFlowElement last, Completion c) { none() }
 
+  /** Gets the body of this constructor belonging to compilation `comp`. */
+  pragma[noinline]
+  ControlFlowElement getBody(InitializerSplitting::CompilationExt comp) {
+    result = this.getBody() and
+    comp = InitializerSplitting::getCompilation(result.getFile())
+  }
+
   final override predicate succ(ControlFlowElement pred, ControlFlowElement succ, Completion c) {
-    exists(Constructor con, InitializerSplitting::InitializedInstanceMember m, int i |
-      this = con and
-      last(m.getInitializer(), pred, c) and
-      c instanceof NormalCompletion and
-      InitializerSplitting::constructorInitializeOrder(con, m, i)
+    exists(InitializerSplitting::CompilationExt comp, int i, AssignExpr ae |
+      ae = InitializerSplitting::constructorInitializeOrder(this, comp, i) and
+      last(ae, pred, c) and
+      c instanceof NormalCompletion
     |
       // Flow from one member initializer to the next
-      exists(InitializerSplitting::InitializedInstanceMember next |
-        InitializerSplitting::constructorInitializeOrder(con, next, i + 1) and
-        first(next.getInitializer(), succ)
-      )
+      first(InitializerSplitting::constructorInitializeOrder(this, comp, i + 1), succ)
       or
       // Flow from last member initializer to constructor body
-      m = InitializerSplitting::lastConstructorInitializer(con) and
-      first(con.getBody(), succ)
+      ae = InitializerSplitting::lastConstructorInitializer(this, comp) and
+      first(this.getBody(comp), succ)
     )
   }
 }
@@ -884,21 +881,21 @@ module Expressions {
         first(this.getChildElement(i + 1), succ)
       )
       or
-      exists(Constructor con |
+      exists(ConstructorTree con, InitializerSplitting::CompilationExt comp |
         last(this, pred, c) and
         con = this.getConstructor() and
+        comp = InitializerSplitting::getCompilation(this.getFile()) and
         c instanceof NormalCompletion
       |
         // Flow from constructor initializer to first member initializer
-        exists(InitializerSplitting::InitializedInstanceMember m |
-          InitializerSplitting::constructorInitializeOrder(con, m, 0)
-        |
-          first(m.getInitializer(), succ)
+        exists(AssignExpr ae |
+          ae = InitializerSplitting::constructorInitializeOrder(con, comp, 0) and
+          first(ae, succ)
         )
         or
         // Flow from constructor initializer to first element of constructor body
-        not InitializerSplitting::constructorInitializeOrder(con, _, _) and
-        first(con.getBody(), succ)
+        not exists(InitializerSplitting::constructorInitializeOrder(con, comp, _)) and
+        first(con.getBody(comp), succ)
       )
     }
   }

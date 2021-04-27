@@ -213,64 +213,94 @@ abstract class SplitImpl extends Split {
 
 module InitializerSplitting {
   private import semmle.code.csharp.ExprOrStmtParent
+  private import semmle.code.csharp.commons.Compilation
+
+  /** A compilation. */
+  newtype CompilationExt =
+    TCompilation(Compilation c) { not extractionIsStandalone() } or
+    TBuildless() { extractionIsStandalone() }
+
+  /**
+   * Gets the compilation that `f` belongs to.
+   *
+   * The compilation is used to restrict member initializers for a given
+   * constructor implementation to those initializers that belong to the
+   * same implementation. That is, the compilation will only make a difference
+   * when the constructor or one of the initializers has multiple implementations.
+   *
+   * Note that using simply the file instead of the compilation will not work
+   * with `partial` classes.
+   */
+  CompilationExt getCompilation(File f) {
+    exists(Compilation c |
+      f = c.getAFileCompiled() and
+      result = TCompilation(c)
+    )
+    or
+    result = TBuildless()
+  }
 
   /**
    * A non-static member with an initializer, for example a field `int Field = 0`.
    */
   class InitializedInstanceMember extends Member {
-    private AssignExpr ae;
-
     InitializedInstanceMember() {
-      not this.isStatic() and
-      expr_parent_top_level_adjusted(ae, _, this) and
-      not ae = any(Callable c).getExpressionBody()
+      exists(AssignExpr ae |
+        not this.isStatic() and
+        expr_parent_top_level(ae, _, this) and
+        not ae = any(Callable c).getExpressionBody()
+      )
     }
 
     /** Gets the initializer expression. */
-    AssignExpr getInitializer() { result = ae }
+    AssignExpr getInitializer() { expr_parent_top_level(result, _, this) }
 
     /**
      * Gets a control flow element that is a syntactic descendant of the
      * initializer expression.
      */
     ControlFlowElement getAnInitializerDescendant() {
-      result = ae
-      or
-      result = this.getAnInitializerDescendant().getAChild()
+      result = this.getInitializer().getAChildExpr*()
     }
   }
 
   /**
    * Holds if `c` is a non-static constructor that performs the initialization
-   * of member `m`.
+   * of a member via assignment `init`.
    */
-  predicate constructorInitializes(InstanceConstructor c, InitializedInstanceMember m) {
-    c.isUnboundDeclaration() and
-    c.getDeclaringType().getAMember() = m and
-    not c.getInitializer().isThis()
+  predicate constructorInitializes(InstanceConstructor c, AssignExpr init) {
+    exists(InitializedInstanceMember m |
+      c.isUnboundDeclaration() and
+      c.getDeclaringType().getAMember() = m and
+      not c.getInitializer().isThis() and
+      init = m.getInitializer()
+    )
   }
 
   /**
-   * Holds if `m` is the `i`th member initialized by non-static constructor `c`.
+   * Gets the `i`th member initializer expression for non-static constructor `c`
+   * in compilation `comp`.
    */
-  predicate constructorInitializeOrder(Constructor c, InitializedInstanceMember m, int i) {
-    constructorInitializes(c, m) and
-    m =
-      rank[i + 1](InitializedInstanceMember m0 |
-        constructorInitializes(c, m0)
+  AssignExpr constructorInitializeOrder(Constructor c, CompilationExt comp, int i) {
+    constructorInitializes(c, result) and
+    result =
+      rank[i + 1](AssignExpr ae0, Location l |
+        constructorInitializes(c, ae0) and
+        l = ae0.getLocation() and
+        getCompilation(l.getFile()) = comp
       |
-        m0
-        order by
-          m0.getLocation().getStartLine(), m0.getLocation().getStartColumn(),
-          m0.getLocation().getFile().getAbsolutePath()
+        ae0 order by l.getStartLine(), l.getStartColumn(), l.getFile().getAbsolutePath()
       )
   }
 
-  /** Gets the last member initialized by non-static constructor `c`. */
-  InitializedInstanceMember lastConstructorInitializer(Constructor c) {
+  /**
+   * Gets the last member initializer expression for non-static constructor `c`
+   * in compilation `comp`.
+   */
+  AssignExpr lastConstructorInitializer(Constructor c, CompilationExt comp) {
     exists(int i |
-      constructorInitializeOrder(c, result, i) and
-      not constructorInitializeOrder(c, _, i + 1)
+      result = constructorInitializeOrder(c, comp, i) and
+      not exists(constructorInitializeOrder(c, comp, i + 1))
     )
   }
 
@@ -378,9 +408,7 @@ module InitializerSplitting {
     override predicate hasSuccessor(ControlFlowElement pred, ControlFlowElement succ, Completion c) {
       this.appliesTo(pred) and
       succ(pred, succ, c) and
-      succ =
-        any(InitializedInstanceMember m | constructorInitializes(this.getConstructor(), m))
-            .getAnInitializerDescendant()
+      succ = any(AssignExpr ae | constructorInitializes(this.getConstructor(), ae)).getAChildExpr*()
     }
   }
 }
@@ -1204,14 +1232,12 @@ module BooleanSplitting {
     exists(Callable c, int r | c = kind.getEnclosingCallable() |
       result = r + ExceptionHandlerSplitting::getNextListOrder() - 1 and
       kind =
-        rank[r](BooleanSplitSubKind kind0 |
+        rank[r](BooleanSplitSubKind kind0, Location l |
           kind0.getEnclosingCallable() = c and
-          kind0.startsSplit(_)
+          kind0.startsSplit(_) and
+          l = kind0.getLocation()
         |
-          kind0
-          order by
-            kind0.getLocation().getStartLine(), kind0.getLocation().getStartColumn(),
-            kind0.toString()
+          kind0 order by l.getStartLine(), l.getStartColumn(), kind0.toString()
         )
     )
   }
@@ -1430,10 +1456,11 @@ module LoopSplitting {
     exists(Callable c, int r | c = enclosingCallable(loop) |
       result = r + BooleanSplitting::getNextListOrder() - 1 and
       loop =
-        rank[r](AnalyzableLoopStmt loop0 |
-          enclosingCallable(loop0) = c
+        rank[r](AnalyzableLoopStmt loop0, Location l |
+          enclosingCallable(loop0) = c and
+          l = loop0.getLocation()
         |
-          loop0 order by loop0.getLocation().getStartLine(), loop0.getLocation().getStartColumn()
+          loop0 order by l.getStartLine(), l.getStartColumn()
         )
     )
   }
