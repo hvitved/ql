@@ -15,13 +15,27 @@ class ExitBasicBlock extends BasicBlock {
   ExitBasicBlock() { scopeLast(_, this.getLastElement(), _) }
 }
 
-pragma[noinline]
+pragma[nomagic]
+private predicate assignableDefinition(Assignable a, Callable c) {
+  exists(AssignableDefinition def | def.getTarget() = a |
+    c = def.getEnclosingCallable() and
+    not c instanceof Constructor
+  )
+}
+
+pragma[nomagic]
+private predicate assignableAccess(Assignable a, Callable c) {
+  exists(AssignableAccess aa | aa.getTarget() = a | c = aa.getEnclosingCallable())
+}
+
+pragma[nomagic]
 private predicate assignableNoCapturing(Assignable a, Callable c) {
-  exists(AssignableAccess aa | aa.getTarget() = a | c = aa.getEnclosingCallable()) and
-  forall(AssignableDefinition def | def.getTarget() = a |
-    c = def.getEnclosingCallable()
+  assignableAccess(a, c) and
+  exists(int i | i = count(Callable other | assignableDefinition(a, other)) |
+    i = 0
     or
-    def.getEnclosingCallable() instanceof Constructor
+    i = 1 and
+    assignableDefinition(a, c)
   )
 }
 
