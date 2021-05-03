@@ -618,6 +618,16 @@ private Gvn::GvnType getANonTypeParameterSubTypeRestricted(DataFlowType t) {
   result = getANonTypeParameterSubType(t)
 }
 
+pragma[nomagic]
+private predicate commonSubTypeGeneral(DataFlowTypeOrUnifiable t1, DataFlowType t2) {
+  not t1 instanceof Gvn::TypeParameterGvnType and
+  t1 = t2
+  or
+  getATypeParameterSubType(t1) = getATypeParameterSubTypeRestricted(t2)
+  or
+  getANonTypeParameterSubType(t1) = getANonTypeParameterSubTypeRestricted(t2)
+}
+
 /** A collection of cached types and predicates to be evaluated in the same stage. */
 cached
 private module Cached {
@@ -884,16 +894,6 @@ private module Cached {
     )
   }
 
-  pragma[nomagic]
-  private predicate commonSubTypeGeneral(DataFlowTypeOrUnifiable t1, DataFlowType t2) {
-    not t1 instanceof Gvn::TypeParameterGvnType and
-    t1 = t2
-    or
-    getATypeParameterSubType(t1) = getATypeParameterSubTypeRestricted(t2)
-    or
-    getANonTypeParameterSubType(t1) = getANonTypeParameterSubTypeRestricted(t2)
-  }
-
   /**
    * Holds if GVNs `t1` and `t2` may have a common sub type. Neither `t1` nor
    * `t2` are allowed to be type parameters.
@@ -901,14 +901,13 @@ private module Cached {
   cached
   predicate commonSubType(DataFlowType t1, DataFlowType t2) { commonSubTypeGeneral(t1, t2) }
 
-  cached
-  predicate commonSubTypeUnifiableLeft(DataFlowType t1, DataFlowType t2) {
-    exists(Gvn::GvnType t |
-      Gvn::unifiable(t1, t) and
-      commonSubTypeGeneral(t, t2)
-    )
-  }
-
+  // cached
+  // predicate commonSubTypeUnifiableLeft(DataFlowType t1, DataFlowType t2) {
+  //   exists(Gvn::GvnType t |
+  //     Gvn::unifiable(t1, t) and
+  //     commonSubTypeGeneral(t, t2)
+  //   )
+  // }
   cached
   predicate outRefReturnNode(Ssa::ExplicitDefinition def, OutRefReturnKind kind) {
     exists(Parameter p |
@@ -1784,9 +1783,15 @@ pragma[inline]
 predicate compatibleTypes(DataFlowType t1, DataFlowType t2) {
   commonSubType(t1, t2)
   or
-  commonSubTypeUnifiableLeft(t1, t2)
+  exists(Gvn::GvnType t |
+    Gvn::unifiable(t1, t) and
+    commonSubTypeGeneral(t, t2)
+  )
   or
-  commonSubTypeUnifiableLeft(t2, t1)
+  exists(Gvn::GvnType t |
+    Gvn::unifiable(t2, t) and
+    commonSubTypeGeneral(t, t1)
+  )
   or
   t1.(DataFlowNullType).isConvertibleTo(t2)
   or
