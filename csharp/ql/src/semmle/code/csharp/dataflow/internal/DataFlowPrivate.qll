@@ -618,16 +618,6 @@ private Gvn::GvnType getANonTypeParameterSubTypeRestricted(DataFlowType t) {
   result = getANonTypeParameterSubType(t)
 }
 
-pragma[nomagic]
-private predicate commonSubTypeGeneral(DataFlowTypeOrUnifiable t1, DataFlowType t2) {
-  not t1 instanceof Gvn::TypeParameterGvnType and
-  t1 = t2
-  or
-  getATypeParameterSubType(t1) = getATypeParameterSubTypeRestricted(t2)
-  or
-  getANonTypeParameterSubType(t1) = getANonTypeParameterSubTypeRestricted(t2)
-}
-
 /** A collection of cached types and predicates to be evaluated in the same stage. */
 cached
 private module Cached {
@@ -894,20 +884,82 @@ private module Cached {
     )
   }
 
+  pragma[noinline]
+  private TypeParameter getATypeParameterSubTypeRestricted3(DataFlowType t) {
+    result = getATypeParameterSubTypeRestricted(t) and
+    not t instanceof Gvn::ConstructedGvnType
+  }
+
+  pragma[noinline]
+  private Gvn::GvnType getANonTypeParameterSubTypeRestricted3(DataFlowType t) {
+    result = getANonTypeParameterSubTypeRestricted(t) and
+    not t instanceof Gvn::ConstructedGvnType
+  }
+
   /**
    * Holds if GVNs `t1` and `t2` may have a common sub type. Neither `t1` nor
    * `t2` are allowed to be type parameters.
    */
   cached
-  predicate commonSubType(DataFlowType t1, DataFlowType t2) { commonSubTypeGeneral(t1, t2) }
+  predicate commonSubType(DataFlowType t1, DataFlowType t2) {
+    not t1 instanceof Gvn::TypeParameterGvnType and
+    t1 = t2
+    or
+    getATypeParameterSubTypeRestricted3(t1) = getATypeParameterSubTypeRestricted3(t2)
+    or
+    getANonTypeParameterSubTypeRestricted3(t1) = getANonTypeParameterSubTypeRestricted3(t2)
+  }
 
-  // cached
-  // predicate commonSubTypeUnifiableLeft(DataFlowType t1, DataFlowType t2) {
-  //   exists(Gvn::GvnType t |
-  //     Gvn::unifiable(t1, t) and
-  //     commonSubTypeGeneral(t, t2)
-  //   )
-  // }
+  cached
+  int getRepr(Gvn::GvnType t) = equivalenceRelation(Gvn::unifiable/2)(t, result)
+
+  pragma[noinline]
+  private TypeParameter getATypeParameterSubType2(int i) {
+    result = getATypeParameterSubType(any(Gvn::GvnType t | i = getRepr(t)))
+  }
+
+  pragma[noinline]
+  private Gvn::GvnType getANonTypeParameterSubType2(int i) {
+    result = getANonTypeParameterSubType(any(Gvn::GvnType t | i = getRepr(t)))
+  }
+
+  pragma[noinline]
+  private predicate commonSubTypeUnifiableLeftA1(int t1, DataFlowType t2, TypeParameter tp) {
+    tp = getATypeParameterSubType2(t1) and
+    tp = getATypeParameterSubTypeRestricted(t2)
+  }
+
+  pragma[noinline]
+  private predicate commonSubTypeUnifiableLeftA2(DataFlowType t1, int t2, TypeParameter tp) {
+    t2 = getRepr(t1) and
+    tp = getATypeParameterSubTypeRestricted(t1)
+  }
+
+  pragma[noinline]
+  private predicate commonSubTypeUnifiableLeftB1(int t1, DataFlowType t2, Gvn::GvnType t) {
+    t = getANonTypeParameterSubType2(t1) and
+    t = getANonTypeParameterSubTypeRestricted(t2)
+  }
+
+  pragma[noinline]
+  private predicate commonSubTypeUnifiableLeftB2(DataFlowType t1, int t2, Gvn::GvnType t) {
+    t2 = getRepr(t1) and
+    t = getANonTypeParameterSubTypeRestricted(t1)
+  }
+
+  cached
+  predicate commonSubTypeUnifiableLeft(DataFlowType t1, DataFlowType t2) {
+    exists(int i, TypeParameter tp |
+      commonSubTypeUnifiableLeftA1(i, t2, tp) and
+      commonSubTypeUnifiableLeftA2(t1, i, tp)
+    )
+    or
+    exists(int i, Gvn::GvnType t |
+      commonSubTypeUnifiableLeftB1(i, t2, t) and
+      commonSubTypeUnifiableLeftB2(t1, i, t)
+    )
+  }
+
   cached
   predicate outRefReturnNode(Ssa::ExplicitDefinition def, OutRefReturnKind kind) {
     exists(Parameter p |
@@ -1783,15 +1835,11 @@ pragma[inline]
 predicate compatibleTypes(DataFlowType t1, DataFlowType t2) {
   commonSubType(t1, t2)
   or
-  exists(Gvn::GvnType t |
-    Gvn::unifiable(t1, t) and
-    commonSubTypeGeneral(t, t2)
-  )
+  Gvn::unifiable(t1, t2)
   or
-  exists(Gvn::GvnType t |
-    Gvn::unifiable(t2, t) and
-    commonSubTypeGeneral(t, t1)
-  )
+  commonSubTypeUnifiableLeft(t1, t2)
+  or
+  commonSubTypeUnifiableLeft(t2, t1)
   or
   t1.(DataFlowNullType).isConvertibleTo(t2)
   or

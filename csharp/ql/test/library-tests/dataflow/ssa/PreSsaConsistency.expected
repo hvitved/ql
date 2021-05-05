@@ -1,3 +1,4 @@
 defReadInconsistency
+| Fields.cs:69:21:69:33 | access to field VolatileField | Fields.cs:68:9:68:25 | ... = ... | Fields.cs:58:18:58:30 | VolatileField | true |
 readReadInconsistency
 phiInconsistency
